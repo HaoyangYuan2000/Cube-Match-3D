@@ -115,23 +115,26 @@ body{
   background:#111;border-radius:4px;
 }
 .rc-cell{border-radius:2px;}
-#slicePanel{
-  display:flex;gap:8px;align-items:center;justify-content:center;
-  padding:6px 0 2px;flex-shrink:0;
+#sliceBack{
+  position:absolute;top:10px;left:10px;z-index:20;
+  background:rgba(20,16,48,.82);border:1px solid rgba(124,111,255,.4);
+  color:#c4b8ff;font-size:13px;font-weight:700;letter-spacing:.3px;
+  padding:6px 16px;border-radius:99px;cursor:pointer;
+  backdrop-filter:blur(6px);transition:background .15s;
 }
-#slicePanel.hidden{display:none;}
-.sdir-btn{
-  border:none;border-radius:14px;padding:0;
-  font-size:22px;cursor:pointer;color:#fff;
-  width:52px;height:52px;display:flex;align-items:center;justify-content:center;
+#sliceBack:active{background:rgba(60,50,110,.9);}
+.slice-arrow{
+  position:absolute;z-index:20;display:none;
+  width:56px;height:56px;border-radius:50%;border:none;
+  font-size:30px;cursor:pointer;color:#fff;
+  transform:translate(-50%,-50%);
+  box-shadow:0 4px 22px rgba(0,0,0,.5);
   transition:transform .12s,box-shadow .12s;
-  flex-direction:column;gap:2px;
+  pointer-events:auto;
 }
-.sdir-btn:active{transform:scale(.9);}
-#sliceBack {background:var(--panel);border:1px solid rgba(124,111,255,.35);font-size:13px;font-weight:700;color:var(--muted);width:auto;padding:0 14px;height:36px;border-radius:99px;}
-#sliceCW  {background:linear-gradient(135deg,#7c6fff,#a855f7);box-shadow:0 4px 14px rgba(124,111,255,.45);}
-#sliceCCW {background:linear-gradient(135deg,#ff5fa0,#f59e0b);box-shadow:0 4px 14px rgba(255,95,160,.45);}
-.sdir-label{font-size:9px;font-weight:700;letter-spacing:.5px;opacity:.85;}
+.slice-arrow:active{transform:translate(-50%,-50%) scale(.88);}
+#sliceCW  {background:linear-gradient(135deg,#7c6fff,#a855f7);box-shadow:0 4px 18px rgba(124,111,255,.55);}
+#sliceCCW {background:linear-gradient(135deg,#ff5fa0,#f59e0b);box-shadow:0 4px 18px rgba(255,95,160,.55);}
 /* ── Level Menu ── */
 .lv-grid{
   display:grid;grid-template-columns:1fr 1fr;gap:10px;
@@ -195,6 +198,9 @@ body{
   </div>
   <div class="canvas-wrap" id="cw">
     <canvas id="c"></canvas>
+    <button id="sliceBack" onclick="sliceBack()" style="display:none">← Back</button>
+    <button class="slice-arrow" id="sliceCW"  onclick="applySlice(true)">↻</button>
+    <button class="slice-arrow" id="sliceCCW" onclick="applySlice(false)">↺</button>
     <!-- Level Menu -->
     <div class="overlay" id="menuOv" style="gap:10px;overflow-y:auto;justify-content:flex-start;padding:16px 20px 20px;align-items:center">
       <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
@@ -234,13 +240,6 @@ body{
       <button class="btn btn-p" onclick="retryLevel()">Try Again</button>
       <button class="btn btn-s" onclick="showMenu()">← Level Menu</button>
     </div>
-  </div>
-  <!-- Slice action panel -->
-  <div id="slicePanel" class="hidden">
-    <button class="sdir-btn" id="sliceBack" onclick="sliceBack()">← Back</button>
-    <span style="font-size:12px;color:var(--muted);font-weight:600;padding:0 4px" id="sliceTxt">Tap a face</span>
-    <button class="sdir-btn" id="sliceCW"  onclick="applySlice(true)"  style="display:none">↻<div class="sdir-label">CW</div></button>
-    <button class="sdir-btn" id="sliceCCW" onclick="applySlice(false)" style="display:none">↺<div class="sdir-label">CCW</div></button>
   </div>
   <!-- Tool bar -->
   <div class="tool-bar" id="toolBar" style="display:none">
@@ -860,6 +859,7 @@ function onMove(x,y){
   if(!pDown)return;
   const dx=x-pX,dy=y-pY;
   if(!moved&&Math.hypot(dx,dy)>6)moved=true;
+  if(moved&&sliceMode==='selectDir'){pX=x;pY=y;return;}
   if(moved){
     const speed=0.006;
     rot=m3.mul(m3.rotY(-dx*speed),m3.mul(m3.rotX(-dy*speed),rot));
@@ -919,7 +919,7 @@ canvas.addEventListener('touchstart',e=>{
 canvas.addEventListener('touchmove',e=>{
   e.preventDefault();
   const r=canvas.getBoundingClientRect();
-  if(e.touches.length>=2&&tfAngle!==null){
+  if(e.touches.length>=2&&tfAngle!==null&&sliceMode!=='selectDir'){
     const a=touchAngle(e.touches);
     const delta=a-tfAngle;
     tfAngle=a;
@@ -1147,13 +1147,27 @@ function processMatches(matches,chain){
 // ═══════════════════════════════════════════════════
 // SLICE TOOL
 // ═══════════════════════════════════════════════════
+function positionSliceArrows(fi){
+  const canvas=document.getElementById('c');
+  const wrap=document.getElementById('cw');
+  const cr=canvas.getBoundingClientRect();
+  const wr=wrap.getBoundingClientRect();
+  const offX=cr.left-wr.left, offY=cr.top-wr.top;
+  const sc=project(m3.app(rot,FACES[fi].n));
+  const sx=offX+sc[0], sy=offY+sc[1];
+  const gap=52;
+  const cw=document.getElementById('sliceCW');
+  const ccw=document.getElementById('sliceCCW');
+  cw.style.left=(sx+gap)+'px'; cw.style.top=sy+'px';
+  ccw.style.left=(sx-gap)+'px'; ccw.style.top=sy+'px';
+}
+
 function startSlice(){
   if(animating||!gameRunning)return;
   sliceMode='selectFace';
   sliceFace=-1;
   sel=null;
-  document.getElementById('slicePanel').classList.remove('hidden');
-  document.getElementById('sliceTxt').textContent='Tap a face to select';
+  document.getElementById('sliceBack').style.display='block';
   document.getElementById('sliceCW').style.display='none';
   document.getElementById('sliceCCW').style.display='none';
   document.getElementById('sliceBtn').classList.add('active');
@@ -1163,10 +1177,8 @@ function startSlice(){
 
 function sliceBack(){
   if(sliceMode==='selectDir'){
-    // Back to face selection
     sliceMode='selectFace';
     sliceFace=-1;
-    document.getElementById('sliceTxt').textContent='Tap a face to select';
     document.getElementById('sliceCW').style.display='none';
     document.getElementById('sliceCCW').style.display='none';
     draw();
@@ -1177,7 +1189,9 @@ function sliceBack(){
 
 function cancelSlice(){
   sliceMode=null;sliceFace=-1;
-  document.getElementById('slicePanel').classList.add('hidden');
+  document.getElementById('sliceBack').style.display='none';
+  document.getElementById('sliceCW').style.display='none';
+  document.getElementById('sliceCCW').style.display='none';
   document.getElementById('sliceBtn').classList.remove('active');
   document.getElementById('sliceBtn').disabled=false;
   draw();
@@ -1186,11 +1200,9 @@ function cancelSlice(){
 function selectSliceFace(fi){
   sliceFace=fi;
   sliceMode='selectDir';
-  const names=['Front','Right','Back','Left','Top','Bottom'];
-  document.getElementById('sliceTxt').textContent=names[fi];
-  document.getElementById('sliceCW').style.display='';
-  document.getElementById('sliceCCW').style.display='';
-  // Pulse loop until slice is resolved
+  document.getElementById('sliceCW').style.display='block';
+  document.getElementById('sliceCCW').style.display='block';
+  positionSliceArrows(fi);
   function pulse(){if(sliceMode==='selectDir'){draw();requestAnimationFrame(pulse);}}
   requestAnimationFrame(pulse);
 }
