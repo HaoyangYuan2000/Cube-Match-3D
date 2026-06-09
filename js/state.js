@@ -9,6 +9,7 @@ let sel=null;
 let gameRunning=false,animating=false,spinning=false;
 let particles=[];
 let adPending=null;
+let sliceUses=3;
 let sliceMode=null;
 let sliceFace=-1;
 let sliceAnim=null;

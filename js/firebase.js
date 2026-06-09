@@ -18,8 +18,6 @@ function initFirebase() {
   _initPromise = (async () => {
     firebase.initializeApp(firebaseConfig);
     _db = firebase.firestore();
-
-    // 用 Firebase Installations 获取稳定 device ID，失败则降级到 UUID
     try {
       _deviceId = await firebase.installations().getId();
     } catch (e) {
@@ -44,9 +42,48 @@ async function loadProgress() {
   }
 }
 
+// 存单个字段（用于实时保存）
 async function saveProgress(key, value) {
   if (!_db || !_deviceId) return;
   try {
     await _db.collection('players').doc(_deviceId).set({ [key]: value }, { merge: true });
+  } catch (e) {}
+}
+
+// 通关时批量保存所有进度
+async function saveAllProgress() {
+  if (!_db || !_deviceId) return;
+
+  // 计算累计星星
+  const totalStars = LEVELS.reduce((sum, _, i) => sum + getStars(i), 0);
+
+  // 最远解锁关卡（最后一个 stars>0 的关卡 +1，最少0）
+  let maxLevel = 0;
+  for (let i = LEVELS.length - 1; i >= 0; i--) {
+    if (getStars(i) > 0) { maxLevel = i + 1; break; }
+  }
+
+  // 每一关的最多剩余步数
+  const bestLeft = {};
+  LEVELS.forEach((_, i) => {
+    const v = +localStorage.getItem('cb3d_bl' + i) || 0;
+    if (v > 0) bestLeft[i] = v;
+  });
+
+  // 每一关星星
+  const stars = {};
+  LEVELS.forEach((_, i) => {
+    const v = getStars(i);
+    if (v > 0) stars[i] = v;
+  });
+
+  try {
+    await _db.collection('players').doc(_deviceId).set({
+      stars,
+      bestLeft,
+      totalStars,
+      maxLevel,
+      tools: { slice: sliceUses }
+    }, { merge: true });
   } catch (e) {}
 }

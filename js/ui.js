@@ -1,12 +1,9 @@
 'use strict';
 
 function getStars(li){return +localStorage.getItem('cb3d_s'+li)||0;}
-function saveStars(li,s){
-  if(s>getStars(li)){
-    localStorage.setItem('cb3d_s'+li,s);
-    saveProgress('s'+li, s);
-  }
-}
+function getBestLeft(li){return +localStorage.getItem('cb3d_bl'+li)||0;}
+function saveStars(li,s){if(s>getStars(li))localStorage.setItem('cb3d_s'+li,s);}
+function saveBestLeft(li,m){if(m>getBestLeft(li))localStorage.setItem('cb3d_bl'+li,m);}
 function isUnlocked(li){return li===0||getStars(li-1)>0;}
 
 function calcStars(){
@@ -28,9 +25,7 @@ function updateStarDisplay(){
 function updateHUD(){
   document.getElementById('se').textContent=score.toLocaleString();
   document.getElementById('me').textContent=moves;
-  const bestMoves=Math.max(moves,+localStorage.getItem('cb3d_bm')||0);
-  localStorage.setItem('cb3d_bm',bestMoves);
-  document.getElementById('be').textContent=bestMoves;
+  document.getElementById('be').textContent=getBestLeft(level)||'-';
   if(gameRunning)updateStarDisplay();
 }
 
@@ -48,9 +43,8 @@ function showWin(){
   gameRunning=false;
   const stars=calcStars();
   saveStars(level,stars);
-  const bm=Math.max(moves,+localStorage.getItem('cb3d_bm')||0);
-  localStorage.setItem('cb3d_bm',bm);
-  saveProgress('bestMoves',bm);
+  saveBestLeft(level,moves);
+  saveAllProgress();
   document.getElementById('wsc').textContent=moves+' moves left';
   document.getElementById('wst').textContent='★'.repeat(stars)+'<span style="opacity:.2">★</span>'.repeat(3-stars);
   const nextBtn=document.querySelector('#winOv .btn-p');
@@ -172,11 +166,12 @@ async function onPlay(){
   await initFirebase();
   const progress=await loadProgress();
   if(progress){
-    // 恢复云端存档到 localStorage
-    Object.keys(progress).forEach(k=>{
-      if(k.startsWith('s'))localStorage.setItem('cb3d_'+k, progress[k]);
-    });
-    if(progress.bestMoves)localStorage.setItem('cb3d_bm', progress.bestMoves);
+    // 恢复星星
+    if(progress.stars)Object.entries(progress.stars).forEach(([i,s])=>localStorage.setItem('cb3d_s'+i,s));
+    // 恢复每关最多剩余步数
+    if(progress.bestLeft)Object.entries(progress.bestLeft).forEach(([i,v])=>localStorage.setItem('cb3d_bl'+i,v));
+    // 恢复道具次数
+    if(progress.tools&&progress.tools.slice!=null)sliceUses=progress.tools.slice;
   }
 
   document.getElementById('splashOv').classList.add('hidden');
@@ -184,7 +179,6 @@ async function onPlay(){
 }
 
 // Boot — 只渲染画布，显示启动页
-document.getElementById('be').textContent=+localStorage.getItem('cb3d_bm')||0;
 requestAnimationFrame(()=>requestAnimationFrame(()=>{
   resize();
   rot=m3.mul(m3.rotX(-0.38),m3.mul(m3.rotY(0.5),m3.id()));
