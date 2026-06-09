@@ -188,26 +188,45 @@ function animateSwap(a,b,done){
 
 // ── Match processing ──
 
-function spawnParticles(fi,r,c){
+function spawnParticles(fi,r,c,noteIdx){
   const f=FACES[fi];
   const[u,v]=cellUV(r,c);
   const p3=faceUVto3D(f,u,v);
   const[sx,sy]=project(m3.app(rot,p3));
+  playShatter(sx,sy,canvas.width,canvas.height,noteIdx);
   const col=COLORS[gems[fi][r][c].color];
-  for(let i=0;i<14;i++){
-    const a=Math.random()*Math.PI*2,s=3+Math.random()*9;
-    particles.push({x:sx,y:sy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
-      life:1,decay:.025+Math.random()*.025,size:3+Math.random()*6,col,spark:false});
+  const colLo=COLORS_LO[gems[fi][r][c].color];
+
+  // Shards — colored squares that spin outward
+  const shardCount=6+Math.floor(Math.random()*3);
+  const baseSize=projScale*CSIZ*0.9;
+  for(let i=0;i<shardCount;i++){
+    const a=Math.random()*Math.PI*2;
+    const s=1.5+Math.random()*3.5;
+    const sz=baseSize*(0.3+Math.random()*0.4);
+    particles.push({
+      x:sx+(Math.random()-.5)*baseSize*0.3,
+      y:sy+(Math.random()-.5)*baseSize*0.3,
+      vx:Math.cos(a)*s, vy:Math.sin(a)*s-0.5,
+      life:1, decay:.010+Math.random()*.008,
+      size:sz, col: Math.random()<0.5?col:colLo,
+      rot:Math.random()*Math.PI*2,
+      rotV:(Math.random()-.5)*0.12,
+      shard:true
+    });
   }
-  for(let i=0;i<10;i++){
+
+  // Small dust dots
+  for(let i=0;i<8;i++){
     const a=Math.random()*Math.PI*2,s=2+Math.random()*6;
     particles.push({x:sx,y:sy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
-      life:1,decay:.04+Math.random()*.04,size:2+Math.random()*3,col:'#ffffff',spark:true});
+      life:0.8,decay:.04+Math.random()*.03,size:2+Math.random()*3,col,spark:false});
   }
+  // Sparks
   for(let i=0;i<6;i++){
-    const a=(i/6)*Math.PI*2,s=6+Math.random()*4;
+    const a=Math.random()*Math.PI*2,s=3+Math.random()*7;
     particles.push({x:sx,y:sy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
-      life:0.8,decay:.04,size:2,col:'#ffd700',spark:false});
+      life:0.7,decay:.05+Math.random()*.04,size:1.5+Math.random()*2,col:'#ffffff',spark:true});
   }
 }
 
@@ -227,8 +246,9 @@ function processMatches(matches,chain){
   score+=gained;
   shakeAmt=Math.min(14, 4+chain*4);
   let avgSX=0,avgSY=0;
-  matches.forEach(([fi,r,c])=>{
-    spawnParticles(fi,r,c);
+  const chainOffset = chain * 3;
+  matches.forEach(([fi,r,c],idx)=>{
+    spawnParticles(fi,r,c, chainOffset + idx);
     const f=FACES[fi];
     const[u,v]=cellUV(r,c);
     const[sx,sy]=project(m3.app(rot,faceUVto3D(f,u,v)));
@@ -236,17 +256,28 @@ function processMatches(matches,chain){
   });
   avgSX/=n;avgSY/=n;
   showFloat(`+${gained}${chain>0?'🔥'.repeat(Math.min(chain,3)):''}`,avgSX,avgSY);
-  let t=0;const dur=22;
+  let t=0;const dur=40;
   function elimStep(){
     t++;const p=t/dur;
     matches.forEach(([fi,r,c])=>{
       const g=gems[fi]?.[r]?.[c];if(!g)return;
-      if(p<0.35){g.scale=1+(p/0.35)*0.45;g.alpha=1;}
-      else{const q=(p-0.35)/0.65;g.scale=Math.max(0,1.45*(1-q));g.alpha=Math.max(0,1-q*1.4);}
+      if(p<0.2){
+        // 快速放大 + 变白
+        g.scale=1+(p/0.2)*0.3;
+        g.alpha=1;
+        g.flash=p/0.2;
+      } else {
+        // 碎裂缩小消失
+        const q=(p-0.2)/0.8;
+        g.scale=Math.max(0,1.3*(1-q));
+        g.alpha=Math.max(0,1-q*1.2);
+        g.flash=0;
+      }
     });
     draw();
     if(t<dur)requestAnimationFrame(elimStep);
     else{
+      matches.forEach(([fi,r,c])=>{if(gems[fi]?.[r]?.[c])gems[fi][r][c].flash=0;});
       matches.forEach(([fi,r,c])=>{gems[fi][r][c]=null;});
       applyGravity(()=>{
         updateHUD();

@@ -158,6 +158,21 @@ function watchAdBonus(){}
 function watchAdContinue(){}
 
 // Splash screen
+function showSplash(){
+  gameRunning=false;animating=false;sel=null;
+  cancelSlice();
+  hideAll();
+  document.getElementById('menuOv').classList.add('hidden');
+  document.getElementById('hud').style.display='none';
+  document.getElementById('infoStrip').style.display='none';
+  document.getElementById('toolBar').style.display='none';
+  document.getElementById('backBtn').style.display='none';
+  const btn=document.getElementById('playBtn');
+  btn.textContent='▶ \xa0PLAY';
+  btn.disabled=false;
+  document.getElementById('splashOv').classList.remove('hidden');
+}
+
 async function onPlay(){
   const btn=document.getElementById('playBtn');
   btn.textContent='Loading...';
