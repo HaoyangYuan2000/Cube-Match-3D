@@ -1,7 +1,12 @@
 'use strict';
 
 function getStars(li){return +localStorage.getItem('cb3d_s'+li)||0;}
-function saveStars(li,s){if(s>getStars(li))localStorage.setItem('cb3d_s'+li,s);}
+function saveStars(li,s){
+  if(s>getStars(li)){
+    localStorage.setItem('cb3d_s'+li,s);
+    saveProgress('s'+li, s);
+  }
+}
 function isUnlocked(li){return li===0||getStars(li-1)>0;}
 
 function calcStars(){
@@ -23,9 +28,9 @@ function updateStarDisplay(){
 function updateHUD(){
   document.getElementById('se').textContent=score.toLocaleString();
   document.getElementById('me').textContent=moves;
-  const best=Math.max(score,+localStorage.getItem('cb3d')||0);
-  localStorage.setItem('cb3d',best);
-  document.getElementById('be').textContent=best.toLocaleString();
+  const bestMoves=Math.max(moves,+localStorage.getItem('cb3d_bm')||0);
+  localStorage.setItem('cb3d_bm',bestMoves);
+  document.getElementById('be').textContent=bestMoves;
   if(gameRunning)updateStarDisplay();
 }
 
@@ -43,7 +48,10 @@ function showWin(){
   gameRunning=false;
   const stars=calcStars();
   saveStars(level,stars);
-  document.getElementById('wsc').textContent=score.toLocaleString();
+  const bm=Math.max(moves,+localStorage.getItem('cb3d_bm')||0);
+  localStorage.setItem('cb3d_bm',bm);
+  saveProgress('bestMoves',bm);
+  document.getElementById('wsc').textContent=moves+' moves left';
   document.getElementById('wst').textContent='★'.repeat(stars)+'<span style="opacity:.2">★</span>'.repeat(3-stars);
   const nextBtn=document.querySelector('#winOv .btn-p');
   nextBtn.style.display=level<LEVELS.length-1?'':'none';
@@ -60,6 +68,8 @@ function showMenu(){
   gameRunning=false;animating=false;sel=null;
   document.getElementById('backBtn').style.display='none';
   document.getElementById('toolBar').style.display='none';
+  document.getElementById('hud').style.display='none';
+  document.getElementById('infoStrip').style.display='none';
   cancelSlice();
   hideAll();
   buildLevelMenu();
@@ -136,6 +146,8 @@ function initLevel(){
   hideAll();createBoard();
   gameRunning=true;animating=false;sel=null;particles=[];shakeAmt=0;
   document.getElementById('le').textContent=level+1;
+  document.getElementById('hud').style.display='';
+  document.getElementById('infoStrip').style.display='';
   document.getElementById('backBtn').style.display='';
   document.getElementById('starHb').style.display='';
   document.getElementById('toolBar').style.display='';
@@ -151,11 +163,30 @@ function closeAd(){}
 function watchAdBonus(){}
 function watchAdContinue(){}
 
-// Boot
-document.getElementById('be').textContent=(+localStorage.getItem('cb3d')||0).toLocaleString();
+// Splash screen
+async function onPlay(){
+  const btn=document.getElementById('playBtn');
+  btn.textContent='Loading...';
+  btn.disabled=true;
+
+  await initFirebase();
+  const progress=await loadProgress();
+  if(progress){
+    // 恢复云端存档到 localStorage
+    Object.keys(progress).forEach(k=>{
+      if(k.startsWith('s'))localStorage.setItem('cb3d_'+k, progress[k]);
+    });
+    if(progress.bestMoves)localStorage.setItem('cb3d_bm', progress.bestMoves);
+  }
+
+  document.getElementById('splashOv').classList.add('hidden');
+  showMenu();
+}
+
+// Boot — 只渲染画布，显示启动页
+document.getElementById('be').textContent=+localStorage.getItem('cb3d_bm')||0;
 requestAnimationFrame(()=>requestAnimationFrame(()=>{
   resize();
   rot=m3.mul(m3.rotX(-0.38),m3.mul(m3.rotY(0.5),m3.id()));
   draw();
-  buildLevelMenu();
 }));

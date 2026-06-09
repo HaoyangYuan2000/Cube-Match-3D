@@ -9,7 +9,7 @@
 <body>
 <div class="ad-top"><span>📢 广告位 · Banner</span></div>
 <div class="wrap">
-  <div class="hud">
+  <div class="hud" id="hud" style="display:none">
     <div class="hb"><div class="hl">Score</div><div class="hv" id="se">0</div></div>
     <div class="hb"><div class="hl">Level</div><div class="hv" id="le">1</div></div>
     <div class="hb" id="starHb" style="display:none">
@@ -18,9 +18,9 @@
         <span id="s1">★</span><span id="s2">★</span><span id="s3">★</span>
       </div>
     </div>
-    <div class="hb"><div class="hl">Best</div><div class="hv gold" id="be">0</div></div>
+    <div class="hb"><div class="hl">Best Left</div><div class="hv gold" id="be">0</div></div>
   </div>
-  <div class="info-strip">
+  <div class="info-strip" id="infoStrip" style="display:none">
     <button class="back-btn" id="backBtn" onclick="showMenu()" style="display:none">← Menu</button>
     <span id="infoTxt">🎲 Drag to rotate · Tap gems to swap</span>
     <div class="moves-pill" id="me">20</div>
@@ -30,6 +30,20 @@
     <button id="sliceBack" onclick="sliceBack()" style="display:none">← Back</button>
     <button class="slice-arrow" id="sliceCW"  onclick="applySlice(true)">↻</button>
     <button class="slice-arrow" id="sliceCCW" onclick="applySlice(false)">↺</button>
+    <!-- Splash Screen -->
+    <div class="overlay" id="splashOv" style="z-index:50;gap:24px">
+      <div class="splash-cube">
+        <div class="sc-face sc-front"></div>
+        <div class="sc-face sc-back"></div>
+        <div class="sc-face sc-left"></div>
+        <div class="sc-face sc-right"></div>
+        <div class="sc-face sc-top"></div>
+        <div class="sc-face sc-bottom"></div>
+      </div>
+      <div class="ov-title" style="font-size:32px;line-height:1.1">Cube Match 3D</div>
+      <div style="font-size:13px;color:var(--muted);letter-spacing:1px">Match · Rotate · Win</div>
+      <button class="btn btn-p" id="playBtn" style="width:200px;font-size:18px;padding:16px 0;margin-top:8px" onclick="onPlay()">▶ &nbsp;PLAY</button>
+    </div>
     <!-- Level Menu -->
     <div class="overlay" id="menuOv" style="gap:10px;overflow-y:auto;justify-content:flex-start;padding:16px 20px 20px;align-items:center">
       <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
@@ -91,6 +105,10 @@
   <div id="adt" style="font-size:12px;color:var(--muted)">5秒后可关闭</div>
   <button id="adcls" onclick="closeAd()">关闭 ✕</button>
 </div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-installations-compat.js"></script>
+<script src="js/firebase.js"></script>
 <script src="js/math.js"></script>
 <script src="js/config.js"></script>
 <script src="js/state.js"></script>

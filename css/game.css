@@ -168,3 +168,33 @@ body{
 }
 .back-btn:hover{background:rgba(124,111,255,.25);border-color:var(--accent);}
 .back-btn:active{transform:scale(.94);}
+
+/* ── Splash Screen ── */
+.splash-cube{
+  width:80px;height:80px;
+  position:relative;transform-style:preserve-3d;
+  animation:spinCube 4s linear infinite;
+}
+@keyframes spinCube{
+  0%  {transform:rotateX(-20deg) rotateY(0deg)}
+  100%{transform:rotateX(-20deg) rotateY(360deg)}
+}
+.sc-face{
+  position:absolute;width:80px;height:80px;
+  border:2px solid rgba(124,111,255,.5);
+  border-radius:10px;opacity:.85;
+}
+.sc-front {background:linear-gradient(135deg,#7c6fff55,#ff5fa055);transform:translateZ(40px);}
+.sc-back  {background:linear-gradient(135deg,#ff5fa055,#ffd70055);transform:rotateY(180deg) translateZ(40px);}
+.sc-left  {background:linear-gradient(135deg,#ffd70055,#7c6fff55);transform:rotateY(-90deg) translateZ(40px);}
+.sc-right {background:linear-gradient(135deg,#a855f755,#ff5fa055);transform:rotateY(90deg)  translateZ(40px);}
+.sc-top   {background:linear-gradient(135deg,#7c6fff55,#22c55e55);transform:rotateX(90deg)  translateZ(40px);}
+.sc-bottom{background:linear-gradient(135deg,#ef444455,#f59e0b55);transform:rotateX(-90deg) translateZ(40px);}
+
+#playBtn{
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{
+  0%,100%{box-shadow:0 4px 20px rgba(124,111,255,.5)}
+  50%    {box-shadow:0 4px 40px rgba(124,111,255,.9),0 0 60px rgba(255,95,160,.4)}
+}
