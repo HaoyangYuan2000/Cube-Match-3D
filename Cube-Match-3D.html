@@ -777,38 +777,27 @@ canvas.addEventListener('mousemove', e=>{if(pDown)onMove(e.offsetX,e.offsetY);})
 canvas.addEventListener('mouseup',   e=>{onUp(e.offsetX,e.offsetY);});
 canvas.addEventListener('mouseleave',e=>{if(pDown){vel=[0,0];pDown=false;}});
 
-// ── Two-finger tap → flip front face 180° around view axis ──
-let tf=null; // {t0: timestamp, moved: bool}
+// ── Touch handlers ──
+// Single finger: free X/Y rotation (drag)
+// Two fingers:   twist Z rotation (angle between fingers drives rotZ)
+let tfAngle=null; // angle between two touch points, null when not in two-finger mode
 
-// Animate 180° rotation around screen Z axis (reverses gravity for all faces)
-function flipCube(){
-  spinning=false;pDown=false;
-  const dur=350;
-  let start=null,applied=0;
-  function tick(ts){
-    if(!start)start=ts;
-    const t=Math.min((ts-start)/dur,1);
-    const ease=1-Math.pow(1-t,3);
-    const target=Math.PI*ease;
-    const delta=target-applied;
-    applied=target;
-    rot=m3.mul(m3.rotZ(delta),rot);
-    draw();
-    if(t<1)requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
+function touchAngle(touches){
+  return Math.atan2(
+    touches[1].clientY-touches[0].clientY,
+    touches[1].clientX-touches[0].clientX
+  );
 }
 
 canvas.addEventListener('touchstart',e=>{
   e.preventDefault();
   const r=canvas.getBoundingClientRect();
-  if(e.touches.length===2){
+  if(e.touches.length>=2){
+    // Two-finger twist mode: cancel any single-finger drag
     pDown=false;spinning=false;
-    tf={t0:Date.now(),moved:false,
-        x0:(e.touches[0].clientX+e.touches[1].clientX)/2,
-        y0:(e.touches[0].clientY+e.touches[1].clientY)/2};
+    tfAngle=touchAngle(e.touches);
   } else {
-    tf=null;
+    tfAngle=null;
     const t=e.touches[0];
     onDown(t.clientX-r.left,t.clientY-r.top);
   }
@@ -817,12 +806,13 @@ canvas.addEventListener('touchstart',e=>{
 canvas.addEventListener('touchmove',e=>{
   e.preventDefault();
   const r=canvas.getBoundingClientRect();
-  if(e.touches.length===2&&tf){
-    // Mark as moved if fingers shifted enough (not a tap)
-    const mx=(e.touches[0].clientX+e.touches[1].clientX)/2;
-    const my=(e.touches[0].clientY+e.touches[1].clientY)/2;
-    if(Math.hypot(mx-tf.x0,my-tf.y0)>12)tf.moved=true;
-  } else if(e.touches.length===1&&!tf){
+  if(e.touches.length>=2&&tfAngle!==null){
+    const a=touchAngle(e.touches);
+    const delta=a-tfAngle;
+    tfAngle=a;
+    rot=m3.mul(m3.rotZ(-delta),rot);
+    draw();
+  } else if(e.touches.length===1&&tfAngle===null){
     const t=e.touches[0];
     onMove(t.clientX-r.left,t.clientY-r.top);
   }
@@ -831,13 +821,15 @@ canvas.addEventListener('touchmove',e=>{
 canvas.addEventListener('touchend',e=>{
   e.preventDefault();
   const r=canvas.getBoundingClientRect();
-  if(tf&&e.touches.length===0){
-    // Two fingers lifted: check if it was a quick tap (not a drag)
-    if(!tf.moved&&Date.now()-tf.t0<250) flipCube();
-    tf=null;
-  } else if(!tf){
+  if(e.touches.length===0){
+    tfAngle=null;
     const t=e.changedTouches[0];
     onUp(t.clientX-r.left,t.clientY-r.top);
+  } else if(e.touches.length===1){
+    // One finger remains: switch back to single-finger drag
+    tfAngle=null;
+    const t=e.touches[0];
+    pX=t.clientX-r.left;pY=t.clientY-r.top;pDown=true;moved=false;
   }
 },{passive:false});
 
