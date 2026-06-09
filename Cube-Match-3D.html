@@ -83,6 +83,55 @@ body{
 #iad.hidden{display:none;}
 #adcls{padding:9px 24px;background:var(--panel);border:1px solid var(--accent);border-radius:99px;color:var(--text);font-size:13px;cursor:pointer;display:none;}
 #adcls.show{display:block;}
+/* ── Tool Bar ── */
+.tool-bar{
+  display:flex;align-items:center;justify-content:center;gap:18px;
+  padding:8px 0 4px;flex-shrink:0;
+}
+.tool-btn{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  background:none;border:none;cursor:pointer;padding:0;
+  transition:transform .15s;
+}
+.tool-btn:active{transform:scale(.9);}
+.tool-icon{
+  width:48px;height:48px;border-radius:14px;
+  background:var(--panel);border:2px solid rgba(124,111,255,.3);
+  display:flex;align-items:center;justify-content:center;
+  transition:border-color .2s,box-shadow .2s;
+}
+.tool-btn.active .tool-icon{
+  border-color:var(--gold);box-shadow:0 0 14px rgba(255,215,0,.5);
+}
+.tool-label{
+  font-size:10px;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;color:var(--muted);
+}
+.tool-btn.active .tool-label{color:var(--gold);}
+/* Rubik's cube icon */
+.rc-face{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:2px;
+  width:34px;height:34px;padding:2px;
+  background:#111;border-radius:4px;
+}
+.rc-cell{border-radius:2px;}
+#slicePanel{
+  display:flex;gap:8px;align-items:center;justify-content:center;
+  padding:6px 0 2px;flex-shrink:0;
+}
+#slicePanel.hidden{display:none;}
+.sdir-btn{
+  border:none;border-radius:14px;padding:0;
+  font-size:22px;cursor:pointer;color:#fff;
+  width:52px;height:52px;display:flex;align-items:center;justify-content:center;
+  transition:transform .12s,box-shadow .12s;
+  flex-direction:column;gap:2px;
+}
+.sdir-btn:active{transform:scale(.9);}
+#sliceBack {background:var(--panel);border:1px solid rgba(124,111,255,.35);font-size:13px;font-weight:700;color:var(--muted);width:auto;padding:0 14px;height:36px;border-radius:99px;}
+#sliceCW  {background:linear-gradient(135deg,#7c6fff,#a855f7);box-shadow:0 4px 14px rgba(124,111,255,.45);}
+#sliceCCW {background:linear-gradient(135deg,#ff5fa0,#f59e0b);box-shadow:0 4px 14px rgba(255,95,160,.45);}
+.sdir-label{font-size:9px;font-weight:700;letter-spacing:.5px;opacity:.85;}
 /* ── Level Menu ── */
 .lv-grid{
   display:grid;grid-template-columns:1fr 1fr;gap:10px;
@@ -186,6 +235,26 @@ body{
       <button class="btn btn-s" onclick="showMenu()">← Level Menu</button>
     </div>
   </div>
+  <!-- Slice action panel -->
+  <div id="slicePanel" class="hidden">
+    <button class="sdir-btn" id="sliceBack" onclick="sliceBack()">← Back</button>
+    <span style="font-size:12px;color:var(--muted);font-weight:600;padding:0 4px" id="sliceTxt">Tap a face</span>
+    <button class="sdir-btn" id="sliceCW"  onclick="applySlice(true)"  style="display:none">↻<div class="sdir-label">CW</div></button>
+    <button class="sdir-btn" id="sliceCCW" onclick="applySlice(false)" style="display:none">↺<div class="sdir-label">CCW</div></button>
+  </div>
+  <!-- Tool bar -->
+  <div class="tool-bar" id="toolBar" style="display:none">
+    <button class="tool-btn" id="sliceBtn" onclick="startSlice()">
+      <div class="tool-icon" id="sliceIcon">
+        <div class="rc-face">
+          <div class="rc-cell" style="background:#ef4444"></div><div class="rc-cell" style="background:#3b82f6"></div><div class="rc-cell" style="background:#22c55e"></div>
+          <div class="rc-cell" style="background:#f59e0b"></div><div class="rc-cell" style="background:#eeeeff"></div><div class="rc-cell" style="background:#a855f7"></div>
+          <div class="rc-cell" style="background:#3b82f6"></div><div class="rc-cell" style="background:#ef4444"></div><div class="rc-cell" style="background:#f59e0b"></div>
+        </div>
+      </div>
+      <span class="tool-label">Slice</span>
+    </button>
+  </div>
 </div>
 <div class="ad-bot"><span>📢 广告位 · Banner</span></div>
 <div id="iad" class="hidden">
@@ -277,6 +346,9 @@ let sel=null;       // {fi,r,c}
 let gameRunning=false,animating=false,spinning=false;
 let particles=[];
 let adPending=null,adTmr=null;
+let sliceMode=null;  // null | 'selectFace' | 'selectDir'
+let sliceFace=-1;    // face index chosen in step 1
+let sliceAnim=null;  // {fi, angle} — UV rotation angle during face-spin animation
 let projScale=1;    // pixels per unit (set in resize)
 let cx=0,cy=0;      // canvas center
 let shakeAmt=0;     // screen shake magnitude
@@ -514,11 +586,41 @@ function drawGem(fi,r,c,bright){
   const gem=gems[fi]?.[r]?.[c];
   if(!gem)return;
   const f=FACES[fi];
-  const[u,v]=cellUV(r,c);
+  let[u,v]=cellUV(r,c);
   const sc=gem.scale??1;
   const h=CSIZ/2*sc;
   const dyOff=gem.dy||0;
   const dxOff=gem.dx||0;
+
+  // Slice face-spin animation: rotate UV around face center
+  if(sliceAnim&&sliceAnim.fi===fi){
+    const a=-sliceAnim.angle;
+    const ca=Math.cos(a),sa=Math.sin(a);
+    const u2=(u+dxOff)*ca-(v+dyOff)*sa;
+    const v2=(u+dxOff)*sa+(v+dyOff)*ca;
+    // 4 corners in face-local space
+    const pts=[
+      faceUVto3D(f,u2-h*ca+h*sa,v2-h*sa-h*ca),
+      faceUVto3D(f,u2+h*ca+h*sa,v2+h*sa-h*ca),
+      faceUVto3D(f,u2+h*ca-h*sa,v2+h*sa+h*ca),
+      faceUVto3D(f,u2-h*ca-h*sa,v2-h*sa+h*ca),
+    ];
+    const s2=pts.map(p=>project(m3.app(rot,p)));
+    const isSel=sel&&sel.fi===fi&&sel.r===r&&sel.c===c;
+    const col=COLORS[gem.color];
+    const shadedCol=shadeHex(col,bright);
+    ctx.save();ctx.globalAlpha=gem.alpha??1;
+    ctx.beginPath();ctx.moveTo(s2[0][0],s2[0][1]);
+    s2.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));ctx.closePath();
+    const gx1=(s2[0][0]+s2[1][0])/2,gy1=(s2[0][1]+s2[1][1])/2;
+    const gx2=(s2[2][0]+s2[3][0])/2,gy2=(s2[2][1]+s2[3][1])/2;
+    const grd=ctx.createLinearGradient(gx1,gy1,gx2,gy2);
+    grd.addColorStop(0,shadeHex(col,bright*1.25));grd.addColorStop(1,shadeHex(col,bright*0.88));
+    ctx.fillStyle=grd;ctx.fill();
+    if(isSel){ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.stroke();}
+    ctx.restore();
+    return;
+  }
 
   // 4 corners in face-local space (dx=along r-axis, dy=along u-axis)
   const pts=[
@@ -683,6 +785,17 @@ function draw(){
 
     drawFaceBG(f.id,b);
     for(let r=0;r<FC;r++)for(let c=0;c<FC;c++)drawGem(f.id,r,c,b);
+
+    // Slice highlight: flash the entire selected face
+    if(sliceMode==='selectDir'&&sliceFace===f.id){
+      const pulse=0.15+0.15*Math.sin(Date.now()*0.008);
+      ctx.beginPath();
+      ctx.moveTo(faceCorners[0][0],faceCorners[0][1]);
+      faceCorners.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));
+      ctx.closePath();
+      ctx.fillStyle=`rgba(255,255,255,${pulse})`;
+      ctx.fill();
+    }
     ctx.restore();
   }
 
@@ -864,6 +977,10 @@ function areCrossFaceAdjacent(a,b){
 
 function handleTap(hit){
   if(!gameRunning||animating)return;
+  // Slice mode: step 1 — select a face
+  if(sliceMode==='selectFace'){selectSliceFace(hit.fi);return;}
+  // Slice mode: step 2 — direction buttons handle it, ignore gem taps
+  if(sliceMode==='selectDir')return;
   if(!sel){sel=hit;draw();return;}
   if(sel.fi===hit.fi&&sel.r===hit.r&&sel.c===hit.c){sel=null;draw();return;}
 
@@ -1027,6 +1144,95 @@ function processMatches(matches,chain){
 }
 
 // ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// SLICE TOOL
+// ═══════════════════════════════════════════════════
+function startSlice(){
+  if(animating||!gameRunning)return;
+  sliceMode='selectFace';
+  sliceFace=-1;
+  sel=null;
+  document.getElementById('slicePanel').classList.remove('hidden');
+  document.getElementById('sliceTxt').textContent='Tap a face to select';
+  document.getElementById('sliceCW').style.display='none';
+  document.getElementById('sliceCCW').style.display='none';
+  document.getElementById('sliceBtn').classList.add('active');
+  document.getElementById('sliceBtn').disabled=true;
+  draw();
+}
+
+function sliceBack(){
+  if(sliceMode==='selectDir'){
+    // Back to face selection
+    sliceMode='selectFace';
+    sliceFace=-1;
+    document.getElementById('sliceTxt').textContent='Tap a face to select';
+    document.getElementById('sliceCW').style.display='none';
+    document.getElementById('sliceCCW').style.display='none';
+    draw();
+  } else {
+    cancelSlice();
+  }
+}
+
+function cancelSlice(){
+  sliceMode=null;sliceFace=-1;
+  document.getElementById('slicePanel').classList.add('hidden');
+  document.getElementById('sliceBtn').classList.remove('active');
+  document.getElementById('sliceBtn').disabled=false;
+  draw();
+}
+
+function selectSliceFace(fi){
+  sliceFace=fi;
+  sliceMode='selectDir';
+  const names=['Front','Right','Back','Left','Top','Bottom'];
+  document.getElementById('sliceTxt').textContent=names[fi];
+  document.getElementById('sliceCW').style.display='';
+  document.getElementById('sliceCCW').style.display='';
+  // Pulse loop until slice is resolved
+  function pulse(){if(sliceMode==='selectDir'){draw();requestAnimationFrame(pulse);}}
+  requestAnimationFrame(pulse);
+}
+
+function applySlice(cw){
+  if(sliceFace<0)return;
+  const fi=sliceFace;
+  cancelSlice();
+  animating=true;
+
+  const target=cw?-Math.PI/2:Math.PI/2;
+  sliceAnim={fi,angle:0};
+
+  const dur=380;let start=null;
+  function step(ts){
+    if(!start)start=ts;
+    const t=Math.min((ts-start)/dur,1);
+    // Ease in-out cubic
+    const ease=t<0.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1;
+    sliceAnim.angle=target*ease;
+    draw();
+    if(t<1){requestAnimationFrame(step);}
+    else{
+      sliceAnim=null;
+      rotateFaceData(fi,cw);
+      animating=false;
+      draw();
+      const m=findAllMatches();
+      if(m.length)processMatches(m,0);
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function rotateFaceData(fi,cw){
+  const old=gems[fi].map(row=>row.map(g=>g?{...g}:null));
+  for(let r=0;r<FC;r++)for(let c=0;c<FC;c++){
+    if(cw) gems[fi][FC-1-c][r]=old[r][c];  // clockwise
+    else   gems[fi][c][FC-1-r]=old[r][c];  // counter-clockwise
+  }
+}
+
 // GRAVITY — orientation-aware
 // ═══════════════════════════════════════════════════
 
@@ -1234,6 +1440,8 @@ function showOver(){
 function showMenu(){
   gameRunning=false;animating=false;sel=null;
   document.getElementById('backBtn').style.display='none';
+  document.getElementById('toolBar').style.display='none';
+  cancelSlice();
   hideAll();
   buildLevelMenu();
   document.getElementById('menuOv').classList.remove('hidden');
@@ -1315,6 +1523,8 @@ function initLevel(){
   document.getElementById('le').textContent=level+1;
   document.getElementById('backBtn').style.display='';
   document.getElementById('starHb').style.display='';
+  document.getElementById('toolBar').style.display='';
+  cancelSlice();
   updateHUD();
   resize();
 }
