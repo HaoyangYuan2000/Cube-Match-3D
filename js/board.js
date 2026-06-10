@@ -246,9 +246,9 @@ function processMatches(matches,chain){
   score+=gained;
   shakeAmt=Math.min(14, 4+chain*4);
   let avgSX=0,avgSY=0;
-  const chainOffset = chain * 3;
+  const chainOffset = Math.min(chain * 2, 6);
   matches.forEach(([fi,r,c],idx)=>{
-    spawnParticles(fi,r,c, chainOffset + idx);
+    spawnParticles(fi,r,c, chainOffset + (idx % 3));
     const f=FACES[fi];
     const[u,v]=cellUV(r,c);
     const[sx,sy]=project(m3.app(rot,faceUVto3D(f,u,v)));
@@ -256,7 +256,7 @@ function processMatches(matches,chain){
   });
   avgSX/=n;avgSY/=n;
   showFloat(`+${gained}${chain>0?'🔥'.repeat(Math.min(chain,3)):''}`,avgSX,avgSY);
-  let t=0;const dur=40;
+  let t=0;const dur=60;
   function elimStep(){
     t++;const p=t/dur;
     matches.forEach(([fi,r,c])=>{
@@ -376,7 +376,7 @@ function applyGravity(done){
       }
     }
   }
-  let start=null;const dur=300;
+  let start=null;const dur=600;
   function step(ts){
     if(!start)start=ts;
     const p=Math.min((ts-start)/dur,1);

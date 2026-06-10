@@ -30,6 +30,19 @@
     <button id="sliceBack" onclick="sliceBack()" style="display:none">← Back</button>
     <button class="slice-arrow" id="sliceCW"  onclick="applySlice(true)">↻</button>
     <button class="slice-arrow" id="sliceCCW" onclick="applySlice(false)">↺</button>
+    <!-- Slice hint -->
+    <div id="sliceHint" style="display:none;position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:10;font-size:11px;color:var(--text);text-align:center;line-height:1.4;pointer-events:none;white-space:nowrap;background:rgba(20,16,48,.75);padding:4px 12px;border-radius:99px;border:1px solid rgba(124,111,255,.3)">Tap a face to rotate</div>
+    <!-- Slice tool floating button -->
+    <button class="tool-btn" id="sliceBtn" onclick="startSlice()" style="display:none;position:absolute;top:8px;right:8px;z-index:10">
+      <div class="tool-icon" id="sliceIcon">
+        <div class="rc-face">
+          <div class="rc-cell" style="background:#ef4444"></div><div class="rc-cell" style="background:#3b82f6"></div><div class="rc-cell" style="background:#22c55e"></div>
+          <div class="rc-cell" style="background:#f59e0b"></div><div class="rc-cell" style="background:#eeeeff"></div><div class="rc-cell" style="background:#a855f7"></div>
+          <div class="rc-cell" style="background:#3b82f6"></div><div class="rc-cell" style="background:#ef4444"></div><div class="rc-cell" style="background:#f59e0b"></div>
+        </div>
+      </div>
+      <span class="tool-label">Slice</span>
+    </button>
     <!-- Splash Screen -->
     <div class="overlay" id="splashOv" style="z-index:50;gap:24px">
       <div class="splash-cube">
@@ -87,19 +100,6 @@
       <button class="btn btn-p" onclick="retryLevel()">Try Again</button>
       <button class="btn btn-s" onclick="showMenu()">← Level Menu</button>
     </div>
-  </div>
-  <!-- Tool bar -->
-  <div class="tool-bar" id="toolBar" style="display:none">
-    <button class="tool-btn" id="sliceBtn" onclick="startSlice()">
-      <div class="tool-icon" id="sliceIcon">
-        <div class="rc-face">
-          <div class="rc-cell" style="background:#ef4444"></div><div class="rc-cell" style="background:#3b82f6"></div><div class="rc-cell" style="background:#22c55e"></div>
-          <div class="rc-cell" style="background:#f59e0b"></div><div class="rc-cell" style="background:#eeeeff"></div><div class="rc-cell" style="background:#a855f7"></div>
-          <div class="rc-cell" style="background:#3b82f6"></div><div class="rc-cell" style="background:#ef4444"></div><div class="rc-cell" style="background:#f59e0b"></div>
-        </div>
-      </div>
-      <span class="tool-label">Slice</span>
-    </button>
   </div>
 </div>
 <div class="ad-bot"><span>📢 广告位 · Banner</span></div>

@@ -23,6 +23,7 @@ function startSlice(){
   document.getElementById('sliceCCW').style.display='none';
   document.getElementById('sliceBtn').classList.add('active');
   document.getElementById('sliceBtn').disabled=true;
+  document.getElementById('sliceHint').style.display='block';
   draw();
 }
 
@@ -45,6 +46,7 @@ function cancelSlice(){
   document.getElementById('sliceCCW').style.display='none';
   document.getElementById('sliceBtn').classList.remove('active');
   document.getElementById('sliceBtn').disabled=false;
+  document.getElementById('sliceHint').style.display='none';
   draw();
 }
 

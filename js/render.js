@@ -56,19 +56,38 @@ function drawGem(fi,r,c,bright){
     const ca=Math.cos(a),sa=Math.sin(a);
     const u0=u+dxOff, v0=v+dyOff;
     const u2=u0*ca-v0*sa, v2=u0*sa+v0*ca;
-    const pts=[
-      faceUVto3D(f,u2-h*ca+h*sa,v2-h*sa-h*ca),
-      faceUVto3D(f,u2+h*ca+h*sa,v2+h*sa-h*ca),
-      faceUVto3D(f,u2+h*ca-h*sa,v2+h*sa+h*ca),
-      faceUVto3D(f,u2-h*ca-h*sa,v2-h*sa+h*ca),
-    ];
-    const s2=pts.map(p=>project(m3.app(rot,p)));
+    const bv=h*0.22;
+    const hi=h-bv;
+    // helper: rotated corner at offset (ou, ov)
+    const rc=(ou,ov)=>project(m3.app(rot,faceUVto3D(f,
+      u2+ou*ca-ov*sa, v2+ou*sa+ov*ca)));
+    const outer=[rc(-h,h),rc(h,h),rc(h,-h),rc(-h,-h)];
+    const inner=[rc(-hi,hi),rc(hi,hi),rc(hi,-hi),rc(-hi,-hi)];
     const col=COLORS[gem.color];
+    const colLo=COLORS_LO[gem.color];
     ctx.save();ctx.globalAlpha=gem.alpha??1;
-    ctx.beginPath();ctx.moveTo(s2[0][0],s2[0][1]);
-    s2.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));ctx.closePath();
-    const grd=ctx.createLinearGradient(s2[0][0],s2[0][1],s2[2][0],s2[2][1]);
-    grd.addColorStop(0,shadeHex(col,bright*1.2));grd.addColorStop(1,shadeHex(col,bright*0.9));
+    // Top bevel
+    ctx.beginPath();ctx.moveTo(outer[0][0],outer[0][1]);ctx.lineTo(outer[1][0],outer[1][1]);
+    ctx.lineTo(inner[1][0],inner[1][1]);ctx.lineTo(inner[0][0],inner[0][1]);ctx.closePath();
+    ctx.fillStyle=shadeHex(col,bright*1.35);ctx.fill();
+    // Left bevel
+    ctx.beginPath();ctx.moveTo(outer[3][0],outer[3][1]);ctx.lineTo(outer[0][0],outer[0][1]);
+    ctx.lineTo(inner[0][0],inner[0][1]);ctx.lineTo(inner[3][0],inner[3][1]);ctx.closePath();
+    ctx.fillStyle=shadeHex(col,bright*1.20);ctx.fill();
+    // Right bevel
+    ctx.beginPath();ctx.moveTo(outer[1][0],outer[1][1]);ctx.lineTo(outer[2][0],outer[2][1]);
+    ctx.lineTo(inner[2][0],inner[2][1]);ctx.lineTo(inner[1][0],inner[1][1]);ctx.closePath();
+    ctx.fillStyle=shadeHex(colLo,bright*0.72);ctx.fill();
+    // Bottom bevel
+    ctx.beginPath();ctx.moveTo(outer[2][0],outer[2][1]);ctx.lineTo(outer[3][0],outer[3][1]);
+    ctx.lineTo(inner[3][0],inner[3][1]);ctx.lineTo(inner[2][0],inner[2][1]);ctx.closePath();
+    ctx.fillStyle=shadeHex(colLo,bright*0.60);ctx.fill();
+    // Main face
+    ctx.beginPath();ctx.moveTo(inner[0][0],inner[0][1]);
+    inner.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));ctx.closePath();
+    const grd=ctx.createLinearGradient(inner[0][0],inner[0][1],inner[2][0],inner[2][1]);
+    grd.addColorStop(0,shadeHex(col,bright));
+    grd.addColorStop(1,shadeHex(colLo,bright*1.4));
     ctx.fillStyle=grd;ctx.fill();
     ctx.restore();
     return;

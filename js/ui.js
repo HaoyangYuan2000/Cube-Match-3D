@@ -46,7 +46,7 @@ function showWin(){
   saveBestLeft(level,moves);
   saveAllProgress();
   document.getElementById('wsc').textContent=moves+' moves left';
-  document.getElementById('wst').textContent='★'.repeat(stars)+'<span style="opacity:.2">★</span>'.repeat(3-stars);
+  document.getElementById('wst').innerHTML='★'.repeat(stars)+'<span style="opacity:.2">★</span>'.repeat(3-stars);
   const nextBtn=document.querySelector('#winOv .btn-p');
   nextBtn.style.display=level<LEVELS.length-1?'':'none';
   setTimeout(()=>document.getElementById('winOv').classList.remove('hidden'),500);
@@ -61,7 +61,7 @@ function showOver(){
 function showMenu(){
   gameRunning=false;animating=false;sel=null;
   document.getElementById('backBtn').style.display='none';
-  document.getElementById('toolBar').style.display='none';
+  document.getElementById('sliceBtn').style.display='none';
   document.getElementById('hud').style.display='none';
   document.getElementById('infoStrip').style.display='none';
   cancelSlice();
@@ -144,7 +144,7 @@ function initLevel(){
   document.getElementById('infoStrip').style.display='';
   document.getElementById('backBtn').style.display='';
   document.getElementById('starHb').style.display='';
-  document.getElementById('toolBar').style.display='';
+  document.getElementById('sliceBtn').style.display='';
   cancelSlice();
   updateHUD();
   resize();
@@ -165,7 +165,7 @@ function showSplash(){
   document.getElementById('menuOv').classList.add('hidden');
   document.getElementById('hud').style.display='none';
   document.getElementById('infoStrip').style.display='none';
-  document.getElementById('toolBar').style.display='none';
+  document.getElementById('sliceBtn').style.display='none';
   document.getElementById('backBtn').style.display='none';
   const btn=document.getElementById('playBtn');
   btn.textContent='▶ \xa0PLAY';

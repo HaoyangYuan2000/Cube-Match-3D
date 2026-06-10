@@ -19,7 +19,7 @@ const ADJ=[
 ];
 
 const FC=5;
-const COLORS    =['#ff6060','#66aaff','#44ff88','#ffdd44','#ff66ff'];
+const COLORS    =['#e84444','#4488ee','#28cc66','#eebb22','#cc44ee'];
 const COLORS_LO =['#bb0808','#0044cc','#008833','#cc5500','#7700bb'];
 const CAM=5.5;
 const CPAD=0.06, CGAP=0.03;
