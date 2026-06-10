@@ -43,6 +43,39 @@
       </div>
       <span class="tool-label">Slice</span>
     </button>
+    <!-- Tutorial -->
+    <div class="overlay hidden" id="tutOv" style="z-index:45;gap:0;padding:20px 24px 24px;pointer-events:auto;cursor:pointer">
+      <div class="ov-title" style="font-size:22px;margin-bottom:4px">How to Play</div>
+      <div style="display:flex;gap:28px;justify-content:center;align-items:flex-start">
+
+        <!-- Single finger -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+          <div class="tut-demo" id="tutTap">
+            <div class="tut-finger" id="tutFinger1"></div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:13px;font-weight:700;color:var(--text)">Tap to Swap</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5">Tap a gem,<br>then tap an adjacent one</div>
+          </div>
+        </div>
+
+        <div style="width:1px;background:rgba(124,111,255,.2);align-self:stretch;margin-top:8px"></div>
+
+        <!-- Two fingers -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+          <div class="tut-demo" id="tutRotate">
+            <div class="tut-finger" id="tutFinger2a"></div>
+            <div class="tut-finger" id="tutFinger2b"></div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:13px;font-weight:700;color:var(--text)">Drag to Rotate</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5">One finger drags,<br>two fingers twist</div>
+          </div>
+        </div>
+
+      </div>
+      <button class="btn btn-p" id="tutCloseBtn" onclick="document.getElementById('tutOv').classList.add('hidden')" style="margin-top:16px;width:160px;font-size:15px;padding:12px 0">Got it!</button>
+    </div>
     <!-- Splash Screen -->
     <div class="overlay" id="splashOv" style="z-index:50;gap:24px">
       <div class="splash-cube">

@@ -169,6 +169,58 @@ body{
 .back-btn:hover{background:rgba(124,111,255,.25);border-color:var(--accent);}
 .back-btn:active{transform:scale(.94);}
 
+/* ── Tutorial ── */
+.tut-demo{
+  width:90px;height:90px;position:relative;
+  background:rgba(124,111,255,.08);border-radius:16px;
+  border:1px solid rgba(124,111,255,.2);
+  overflow:hidden;flex-shrink:0;
+}
+.tut-finger{
+  position:absolute;width:22px;height:22px;border-radius:50%;
+  background:rgba(255,255,255,0.9);
+  box-shadow:0 0 0 4px rgba(124,111,255,.4);
+  pointer-events:none;
+}
+/* Tap animation: finger appears, shrinks, disappears, repeat */
+#tutFinger1{
+  top:50%;left:50%;transform:translate(-50%,-50%) scale(1);
+  animation:tutTap 1.8s ease-in-out infinite;
+}
+@keyframes tutTap{
+  0%  {opacity:0;transform:translate(-50%,-50%) scale(0.6)}
+  20% {opacity:1;transform:translate(-50%,-50%) scale(1)}
+  35% {opacity:1;transform:translate(-50%,-50%) scale(0.75)}
+  50% {opacity:1;transform:translate(-50%,-50%) scale(1)}
+  65% {opacity:1;transform:translate(-50%,-65%) scale(0.75)}
+  80% {opacity:1;transform:translate(-50%,-65%) scale(1)}
+  95% {opacity:0;transform:translate(-50%,-65%) scale(0.6)}
+  100%{opacity:0}
+}
+/* Two-finger twist animation */
+#tutFinger2a{
+  top:28%;left:22%;
+  animation:tutTwistA 2s ease-in-out infinite;
+}
+#tutFinger2b{
+  top:28%;right:22%;
+  animation:tutTwistB 2s ease-in-out infinite;
+}
+@keyframes tutTwistA{
+  0%  {opacity:0;top:28%;left:22%}
+  15% {opacity:1;top:28%;left:22%}
+  60% {opacity:1;top:55%;left:35%}
+  85% {opacity:1;top:55%;left:35%}
+  100%{opacity:0;top:55%;left:35%}
+}
+@keyframes tutTwistB{
+  0%  {opacity:0;top:28%;right:22%}
+  15% {opacity:1;top:28%;right:22%}
+  60% {opacity:1;top:10%;right:35%}
+  85% {opacity:1;top:10%;right:35%}
+  100%{opacity:0;top:10%;right:35%}
+}
+
 /* ── Splash Screen ── */
 .splash-cube{
   width:80px;height:80px;

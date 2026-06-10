@@ -123,7 +123,18 @@ function startLevel(i){
   document.getElementById('rulesOv').classList.remove('hidden');
 }
 
-function beginPlay(){initLevel();}
+function showTutorial(){
+  document.getElementById('tutOv').classList.remove('hidden');
+  markTutorialDone();
+}
+
+function beginPlay(){
+  initLevel();
+  if(window._showTutorial){
+    window._showTutorial=false;
+    setTimeout(showTutorial, 600);
+  }
+}
 function retryLevel(){score=0;initLevel();}
 function nextLevel(){
   level++;score=0;
@@ -188,6 +199,9 @@ async function onPlay(){
     // 恢复道具次数
     if(progress.tools&&progress.tools.slice!=null)sliceUses=progress.tools.slice;
   }
+
+  // 用 Firebase 存档决定是否展示教程
+  window._showTutorial = !progress?.tutorialDone;
 
   document.getElementById('splashOv').classList.add('hidden');
   showMenu();

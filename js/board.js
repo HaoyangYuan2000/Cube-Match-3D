@@ -230,6 +230,94 @@ function spawnParticles(fi,r,c,noteIdx){
   }
 }
 
+// ── Power-up helpers ──
+
+// Group matched cells into connected components (same face, adjacent)
+function groupMatches(matches){
+  const key=(fi,r,c)=>`${fi},${r},${c}`;
+  const cellSet=new Set(matches.map(([fi,r,c])=>key(fi,r,c)));
+  const visited=new Set();
+  const groups=[];
+  for(const[fi,r,c]of matches){
+    const k=key(fi,r,c);
+    if(visited.has(k))continue;
+    const group=[],queue=[[fi,r,c]];
+    visited.add(k);
+    while(queue.length){
+      const[qfi,qr,qc]=queue.shift();
+      group.push([qfi,qr,qc]);
+      for(const[nr,nc]of[[qr-1,qc],[qr+1,qc],[qr,qc-1],[qr,qc+1]]){
+        if(nr<0||nr>=FC||nc<0||nc>=FC)continue;
+        const nk=key(qfi,nr,nc);
+        if(cellSet.has(nk)&&!visited.has(nk)){visited.add(nk);queue.push([qfi,nr,nc]);}
+      }
+    }
+    groups.push(group);
+  }
+  return groups;
+}
+
+// Bomb: 3x3 area around group center on same face
+function getBombCells(group){
+  const fi=group[0][0];
+  const avgR=Math.round(group.reduce((s,[,r])=>s+r,0)/group.length);
+  const avgC=Math.round(group.reduce((s,[,,c])=>s+c,0)/group.length);
+  const cells=[];
+  for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+    const nr=avgR+dr,nc=avgC+dc;
+    if(nr>=0&&nr<FC&&nc>=0&&nc<FC)cells.push([fi,nr,nc]);
+  }
+  return cells;
+}
+
+// Rocket: clear entire horizontal ring (row r on 4 side faces 0-3)
+function getRocketCells(group){
+  const rows=group.map(([,r])=>r).sort((a,b)=>a-b);
+  const r=rows[Math.floor(rows.length/2)]; // median row
+  const cells=[];
+  for(let f=0;f<4;f++)for(let c=0;c<FC;c++)cells.push([f,r,c]);
+  return cells;
+}
+
+// Bomb particle ring
+function spawnBombFX(cx,cy){
+  const cols=['#ff8800','#ffcc00','#ff4400','#ffffff'];
+  for(let i=0;i<28;i++){
+    const a=(i/28)*Math.PI*2;
+    const s=5+Math.random()*10;
+    particles.push({
+      x:cx,y:cy,
+      vx:Math.cos(a)*s,vy:Math.sin(a)*s,
+      life:1,decay:0.012+Math.random()*0.01,
+      size:3+Math.random()*5,
+      col:cols[Math.floor(Math.random()*cols.length)],
+      spark:true
+    });
+  }
+}
+
+// Rocket particle sweep
+function spawnRocketFX(cells){
+  cells.forEach(([fi,r,c])=>{
+    if(!gems[fi]?.[r]?.[c])return;
+    const f=FACES[fi];
+    const[u,v]=cellUV(r,c);
+    const[sx,sy]=project(m3.app(rot,faceUVto3D(f,u,v)));
+    for(let i=0;i<4;i++){
+      particles.push({
+        x:sx+(Math.random()-.5)*8,
+        y:sy+(Math.random()-.5)*8,
+        vx:(Math.random()-.5)*5,
+        vy:-2-Math.random()*4,
+        life:0.9,decay:0.04+Math.random()*0.02,
+        size:2+Math.random()*3,
+        col:Math.random()<0.5?'#00ccff':'#ffffff',
+        spark:true
+      });
+    }
+  });
+}
+
 function showFloat(text,sx,sy){
   const el=document.createElement('div');
   el.className='float-txt';el.textContent=text;
@@ -241,35 +329,67 @@ function showFloat(text,sx,sy){
 }
 
 function processMatches(matches,chain){
-  const n=matches.length;
+  // ── Power-up expansion ──
+  const groups=groupMatches(matches);
+  const expandedSet=new Set(matches.map(([fi,r,c])=>`${fi},${r},${c}`));
+  let hasBomb=false,hasRocket=false;
+  let bombCX=0,bombCY=0,rocketCells=[];
+
+  for(const group of groups){
+    if(group.length>=5){
+      hasRocket=true;
+      const rc=getRocketCells(group);
+      rocketCells=rocketCells.concat(rc);
+      rc.forEach(([fi,r,c])=>expandedSet.add(`${fi},${r},${c}`));
+    } else if(group.length>=4){
+      hasBomb=true;
+      getBombCells(group).forEach(([fi,r,c])=>expandedSet.add(`${fi},${r},${c}`));
+      // bomb center screen pos
+      const fi=group[0][0];
+      const avgR=Math.round(group.reduce((s,[,r2])=>s+r2,0)/group.length);
+      const avgC=Math.round(group.reduce((s,[,,c2])=>s+c2,0)/group.length);
+      const[bx,by]=project(m3.app(rot,faceUVto3D(FACES[fi],...cellUV(avgR,avgC))));
+      bombCX=bx;bombCY=by;
+    }
+  }
+
+  // Filter to cells with actual gems
+  const allMatches=[...expandedSet].map(k=>k.split(',').map(Number))
+    .filter(([fi,r,c])=>gems[fi]?.[r]?.[c]!=null);
+
+  const n=allMatches.length;
   const gained=Math.round(n*10*(chain+1)*Math.pow(1.15,chain));
   score+=gained;
-  shakeAmt=Math.min(14, 4+chain*4);
+  shakeAmt=Math.min(18, 4+chain*4+(hasBomb?4:0)+(hasRocket?6:0));
   let avgSX=0,avgSY=0;
-  const chainOffset = Math.min(chain * 2, 6);
-  matches.forEach(([fi,r,c],idx)=>{
-    spawnParticles(fi,r,c, chainOffset + (idx % 3));
+  const chainOffset=Math.min(chain*2,6);
+  allMatches.forEach(([fi,r,c],idx)=>{
+    spawnParticles(fi,r,c,chainOffset+(idx%3));
     const f=FACES[fi];
     const[u,v]=cellUV(r,c);
     const[sx,sy]=project(m3.app(rot,faceUVto3D(f,u,v)));
     avgSX+=sx;avgSY+=sy;
   });
   avgSX/=n;avgSY/=n;
-  showFloat(`+${gained}${chain>0?'🔥'.repeat(Math.min(chain,3)):''}`,avgSX,avgSY);
+
+  // Power-up FX
+  if(hasBomb){spawnBombFX(bombCX,bombCY);playBoom(bombCX,canvas.width);}
+  if(hasRocket){spawnRocketFX(rocketCells);playRocket(avgSX,canvas.width);}
+
+  const label=hasRocket?`🚀+${gained}`:hasBomb?`💣+${gained}`:`+${gained}${chain>0?'🔥'.repeat(Math.min(chain,3)):''}`;
+  showFloat(label,avgSX,avgSY);
   let t=0;const dur=60;
   function elimStep(){
     t++;const p=t/dur;
-    matches.forEach(([fi,r,c])=>{
+    allMatches.forEach(([fi,r,c])=>{
       const g=gems[fi]?.[r]?.[c];if(!g)return;
       if(p<0.2){
-        // 快速放大 + 变白
-        g.scale=1+(p/0.2)*0.3;
+        g.scale=1+(p/0.2)*(hasRocket?0.5:hasBomb?0.4:0.3);
         g.alpha=1;
         g.flash=p/0.2;
       } else {
-        // 碎裂缩小消失
         const q=(p-0.2)/0.8;
-        g.scale=Math.max(0,1.3*(1-q));
+        g.scale=Math.max(0,(hasRocket?1.5:hasBomb?1.4:1.3)*(1-q));
         g.alpha=Math.max(0,1-q*1.2);
         g.flash=0;
       }
@@ -277,8 +397,8 @@ function processMatches(matches,chain){
     draw();
     if(t<dur)requestAnimationFrame(elimStep);
     else{
-      matches.forEach(([fi,r,c])=>{if(gems[fi]?.[r]?.[c])gems[fi][r][c].flash=0;});
-      matches.forEach(([fi,r,c])=>{gems[fi][r][c]=null;});
+      allMatches.forEach(([fi,r,c])=>{if(gems[fi]?.[r]?.[c])gems[fi][r][c].flash=0;});
+      allMatches.forEach(([fi,r,c])=>{gems[fi][r][c]=null;});
       applyGravity(()=>{
         updateHUD();
         const next=findAllMatches();

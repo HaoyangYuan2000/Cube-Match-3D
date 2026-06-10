@@ -50,6 +50,10 @@ async function saveProgress(key, value) {
   } catch (e) {}
 }
 
+async function markTutorialDone() {
+  await saveProgress('tutorialDone', true);
+}
+
 // 通关时批量保存所有进度
 async function saveAllProgress() {
   if (!_db || !_deviceId) return;
