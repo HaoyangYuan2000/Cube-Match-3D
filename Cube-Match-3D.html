@@ -18,12 +18,13 @@
         <span id="s1">★</span><span id="s2">★</span><span id="s3">★</span>
       </div>
     </div>
-    <div class="hb"><div class="hl">Best Left</div><div class="hv gold" id="be">0</div></div>
+    <div class="hb"><div class="hl" id="beLabel">Best Left</div><div class="hv gold" id="be">0</div></div>
   </div>
   <div class="info-strip" id="infoStrip" style="display:none">
-    <button class="back-btn" id="backBtn" onclick="showMenu()" style="display:none">← Menu</button>
-    <span id="infoTxt">🎲 Drag to rotate · Tap gems to swap</span>
+    <button class="back-btn" id="backBtn" onclick="showModeSelect()" style="display:none">← Menu</button>
+    <span id="infoTxt">Drag to rotate · Tap gems to swap</span>
     <div class="moves-pill" id="me">20</div>
+    <div class="timer-pill" id="timerPill" style="display:none">2:00</div>
   </div>
   <div class="canvas-wrap" id="cw">
     <canvas id="c"></canvas>
@@ -74,7 +75,26 @@
         </div>
 
       </div>
-      <button class="btn btn-p" id="tutCloseBtn" onclick="document.getElementById('tutOv').classList.add('hidden')" style="margin-top:16px;width:160px;font-size:15px;padding:12px 0">Got it!</button>
+
+      <!-- Power-up tip -->
+      <div style="margin-top:16px;width:100%;max-width:320px;background:rgba(255,95,160,.07);border:1px solid rgba(255,95,160,.2);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:14px">
+        <div style="font-size:28px;flex-shrink:0;width:36px;text-align:center">💥</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">Chain 4+ for power-ups</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.6">Match <b style="color:#ffd700">4</b> → 💣 Bomb clears 3×3 &nbsp;·&nbsp; Match <b style="color:#ffd700">5+</b> → 🚀 Rocket clears a full row</div>
+        </div>
+      </div>
+
+      <!-- Gravity tip -->
+      <div style="margin-top:8px;width:100%;max-width:320px;background:rgba(124,111,255,.08);border:1px solid rgba(124,111,255,.2);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:14px">
+        <div style="font-size:28px;flex-shrink:0;width:36px;text-align:center">🌀</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">Rotate to change gravity</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.6">Tilt the cube — blocks always fall<br>toward the <b style="color:var(--accent)">bottom edge</b> of each face</div>
+        </div>
+      </div>
+
+      <button class="btn btn-p" id="tutCloseBtn" onclick="document.getElementById('tutOv').classList.add('hidden')" style="margin-top:14px;width:160px;font-size:15px;padding:12px 0">Got it!</button>
     </div>
     <!-- Splash Screen -->
     <div class="overlay" id="splashOv" style="z-index:50;gap:24px">
@@ -469,49 +489,50 @@
 
       <button class="btn btn-p" id="playBtn" style="width:200px;font-size:18px;padding:16px 0;margin-top:4px" onclick="onPlay()">▶ &nbsp;PLAY</button>
     </div>
-    <!-- Level Menu -->
-    <div class="overlay" id="menuOv" style="gap:10px;overflow-y:auto;justify-content:flex-start;padding:16px 20px 20px;align-items:center">
-      <div style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:300px;flex-shrink:0">
-        <button class="back-btn" onclick="showSplash()">← Home</button>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:28px">🎲</span>
-          <span class="ov-title" style="font-size:24px">Levels</span>
-        </div>
-        <div style="width:60px"></div>
+    <!-- Mode Select -->
+    <div class="overlay hidden" id="modeOv" style="gap:18px;padding:28px 20px">
+      <div class="ov-title" style="font-size:24px">Choose Mode</div>
+      <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:300px">
+        <button class="mode-card" onclick="selectMode('classic')">
+          <div class="mode-icon">🏆</div>
+          <div class="mode-body">
+            <div class="mode-name">Classic</div>
+            <div class="mode-desc">20 moves · highest score</div>
+          </div>
+          <div class="mode-arrow">›</div>
+        </button>
+        <button class="mode-card" onclick="selectMode('timed')">
+          <div class="mode-icon">⏱️</div>
+          <div class="mode-body">
+            <div class="mode-name">Time Attack</div>
+            <div class="mode-desc">2 minutes · highest score</div>
+          </div>
+          <div class="mode-arrow">›</div>
+        </button>
       </div>
-      <div style="font-size:11px;color:var(--muted);text-align:center;flex-shrink:0;line-height:1.6;max-width:280px">
-        Drag to rotate · Tap adjacent gems to swap · Match 3 to score
-      </div>
-      <div class="lv-grid" id="levelGrid"></div>
+      <button class="btn btn-s" style="font-size:12px;padding:8px 20px" onclick="showSplash()">← Back</button>
     </div>
-    <!-- Star Rules popup -->
-    <div class="overlay hidden" id="rulesOv" style="gap:14px">
-      <div class="ov-title" id="rulesTitle" style="font-size:22px">Level 1</div>
-      <div style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)" id="rulesMeta"></div>
-      <div style="width:100%;max-width:280px;background:var(--panel);border:1px solid rgba(124,111,255,.25);border-radius:14px;padding:14px 16px;text-align:left">
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px">Star Rating</div>
-        <div id="rulesStars" style="display:flex;flex-direction:column;gap:8px;font-size:13px"></div>
-      </div>
-      <button class="btn btn-p" style="width:100%;max-width:280px" onclick="beginPlay()">Play</button>
-      <button class="btn btn-s" style="font-size:12px;padding:8px 20px" onclick="showMenu()">← Back</button>
+    <!-- Classic Result -->
+    <div class="overlay hidden" id="classicOv">
+      <div style="font-size:36px">🏆</div>
+      <div class="ov-title">Out of Moves!</div>
+      <div style="font-size:13px;color:var(--muted)">Your Score</div>
+      <div class="ov-score" id="classicScore">0</div>
+      <div style="font-size:13px;color:var(--muted)">Best</div>
+      <div style="font-size:28px;font-weight:900;color:var(--gold)" id="classicBest">0</div>
+      <button class="btn btn-p" onclick="startClassicGame()">Play Again</button>
+      <button class="btn btn-s" onclick="showModeSelect()">← Modes</button>
     </div>
-    <!-- Win -->
-    <div class="overlay hidden" id="winOv">
-      <div style="font-size:36px">🎉</div>
-      <div class="ov-title">Level Complete!</div>
-      <div class="ov-score" id="wsc">0</div>
-      <div id="wst" style="font-size:26px">⭐⭐⭐</div>
-      <div style="font-size:12px;color:#ffcc44;letter-spacing:0.5px">🔪 +1 Slice reward!</div>
-      <button class="btn btn-p" onclick="nextLevel()">Next Level</button>
-      <button class="btn btn-s" onclick="showMenu()">← Level Menu</button>
-    </div>
-    <!-- Game Over -->
-    <div class="overlay hidden" id="ovOv">
-      <div style="font-size:36px">💔</div>
-      <div class="ov-title">Game Over</div>
-      <div class="ov-score" id="fsc">0</div>
-      <button class="btn btn-p" onclick="retryLevel()">Try Again</button>
-      <button class="btn btn-s" onclick="showMenu()">← Level Menu</button>
+    <!-- Time Attack Result -->
+    <div class="overlay hidden" id="taOv">
+      <div style="font-size:36px">⏱️</div>
+      <div class="ov-title">Time's Up!</div>
+      <div style="font-size:13px;color:var(--muted)">Your Score</div>
+      <div class="ov-score" id="taScore">0</div>
+      <div style="font-size:13px;color:var(--muted)">Best</div>
+      <div style="font-size:28px;font-weight:900;color:var(--gold)" id="taBest">0</div>
+      <button class="btn btn-p" onclick="startTimedGame()">Play Again</button>
+      <button class="btn btn-s" onclick="showModeSelect()">← Modes</button>
     </div>
   </div>
 </div>
@@ -525,15 +546,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-installations-compat.js"></script>
-<script src="js/firebase.js?v=3"></script>
-<script src="js/audio.js?v=3"></script>
-<script src="js/math.js?v=3"></script>
-<script src="js/config.js?v=3"></script>
-<script src="js/state.js?v=3"></script>
-<script src="js/render.js?v=3"></script>
-<script src="js/board.js?v=3"></script>
-<script src="js/slice.js?v=3"></script>
-<script src="js/input.js?v=3"></script>
-<script src="js/ui.js?v=3"></script>
+<script src="js/firebase.js?v=5"></script>
+<script src="js/audio.js?v=5"></script>
+<script src="js/math.js?v=5"></script>
+<script src="js/config.js?v=5"></script>
+<script src="js/state.js?v=5"></script>
+<script src="js/render.js?v=5"></script>
+<script src="js/board.js?v=5"></script>
+<script src="js/slice.js?v=5"></script>
+<script src="js/input.js?v=5"></script>
+<script src="js/ui.js?v=5"></script>
 </body>
 </html>

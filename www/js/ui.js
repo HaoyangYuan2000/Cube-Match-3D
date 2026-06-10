@@ -24,19 +24,31 @@ function updateStarDisplay(){
 
 function updateHUD(){
   document.getElementById('se').textContent=score.toLocaleString();
-  document.getElementById('me').textContent=moves;
-  document.getElementById('be').textContent=getBestLeft(level)||'-';
-  if(gameRunning)updateStarDisplay();
+  if(window._gameMode==='timed'){
+    document.getElementById('be').textContent=getTaBest().toLocaleString()||'0';
+  } else if(window._gameMode==='classic'){
+    document.getElementById('me').textContent=moves;
+    document.getElementById('be').textContent=getClassicBest().toLocaleString()||'0';
+  } else {
+    document.getElementById('me').textContent=moves;
+    document.getElementById('be').textContent=getBestLeft(level)||'-';
+    if(gameRunning)updateStarDisplay();
+  }
 }
 
 function checkEnd(){
+  if(window._gameMode==='timed')return;
+  if(window._gameMode==='classic'){
+    if(moves<=0)endClassicGame();
+    return;
+  }
   const{goal}=cfg();
   if(score>=goal){showWin();return;}
   if(moves<=0){showOver();return;}
 }
 
 function hideAll(){
-  ['menuOv','rulesOv','winOv','ovOv'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  ['menuOv','rulesOv','winOv','ovOv','modeOv','taOv','classicOv'].forEach(id=>document.getElementById(id).classList.add('hidden'));
 }
 
 function updateSliceBtn(){
@@ -78,10 +90,14 @@ function showDailyToast(){
 
 function showMenu(){
   gameRunning=false;animating=false;sel=null;
+  clearInterval(_taTimer);
   document.getElementById('backBtn').style.display='none';
   document.getElementById('sliceBtn').style.display='none';
   document.getElementById('hud').style.display='none';
   document.getElementById('infoStrip').style.display='none';
+  document.getElementById('me').style.display='';
+  document.getElementById('timerPill').style.display='none';
+  document.getElementById('starHb').style.display='';
   cancelSlice();
   hideAll();
   buildLevelMenu();
@@ -173,6 +189,7 @@ function initLevel(){
   hideAll();createBoard();
   gameRunning=true;animating=false;sel=null;particles=[];shakeAmt=0;
   document.getElementById('le').textContent=level+1;
+  document.getElementById('beLabel').textContent='Best Left';
   document.getElementById('hud').style.display='';
   document.getElementById('infoStrip').style.display='';
   document.getElementById('backBtn').style.display='';
@@ -306,8 +323,130 @@ async function onPlay(){
   window._showTutorial = !progress?.tutorialDone;
 
   document.getElementById('splashOv').classList.add('hidden');
-  showMenu();
+  showModeSelect();
   updateSliceBtn();
+}
+
+function showModeSelect(){
+  gameRunning=false;animating=false;sel=null;
+  cancelSlice();
+  hideAll();
+  document.getElementById('hud').style.display='none';
+  document.getElementById('infoStrip').style.display='none';
+  document.getElementById('sliceBtn').style.display='none';
+  document.getElementById('backBtn').style.display='none';
+  document.getElementById('modeOv').classList.remove('hidden');
+  if(window._dailySliceBonus){
+    window._dailySliceBonus=false;
+    setTimeout(showDailyToast,400);
+  }
+}
+
+function selectMode(mode){
+  window._gameMode=mode;
+  if(mode==='classic'){
+    startClassicGame();
+  } else {
+    startTimedGame();
+  }
+}
+
+// ── Classic (fixed moves, no goal) ──
+const CLASSIC_MOVES=20;
+
+function startClassicGame(){
+  window._gameMode='classic';
+  level=0; score=0; moves=CLASSIC_MOVES;
+  rot=m3.mul(m3.rotX(-0.42),m3.mul(m3.rotY(0.55),m3.id()));
+  faceGravity=FACES.map(()=>({axis:'row',dir:1}));
+  hideAll();
+  document.getElementById('splashOv').classList.add('hidden');
+  createBoard();
+  gameRunning=true; animating=false; sel=null; particles=[]; shakeAmt=0;
+
+  document.getElementById('hud').style.display='';
+  document.getElementById('infoStrip').style.display='';
+  document.getElementById('backBtn').style.display='';
+  document.getElementById('sliceBtn').style.display='';
+  document.getElementById('starHb').style.display='none';
+  document.getElementById('timerPill').style.display='none';
+  document.getElementById('me').style.display='';
+  document.getElementById('le').textContent='🏆';
+  document.getElementById('beLabel').textContent='Best';
+  document.getElementById('be').textContent=getClassicBest().toLocaleString()||'0';
+  cancelSlice(); updateSliceBtn(); updateHUD(); resize();
+}
+
+function getClassicBest(){return+localStorage.getItem('cb3d_classic_best')||0;}
+
+function endClassicGame(){
+  gameRunning=false;
+  const best=Math.max(score,getClassicBest());
+  localStorage.setItem('cb3d_classic_best',best);
+  document.getElementById('classicScore').textContent=score.toLocaleString();
+  document.getElementById('classicBest').textContent=best.toLocaleString();
+  setTimeout(()=>document.getElementById('classicOv').classList.remove('hidden'),400);
+}
+
+// ── Time Attack ──
+let _taTimer=null;
+const TA_DURATION=120; // seconds
+
+function startTimedGame(){
+  window._gameMode='timed';
+  level=0; score=0;
+  rot=m3.mul(m3.rotX(-0.42),m3.mul(m3.rotY(0.55),m3.id()));
+  faceGravity=FACES.map(()=>({axis:'row',dir:1}));
+  hideAll();
+  document.getElementById('splashOv').classList.add('hidden');
+  createBoard();
+  gameRunning=true; animating=false; sel=null; particles=[]; shakeAmt=0;
+
+  // HUD
+  document.getElementById('hud').style.display='';
+  document.getElementById('infoStrip').style.display='';
+  document.getElementById('backBtn').style.display='';
+  document.getElementById('sliceBtn').style.display='';
+  document.getElementById('starHb').style.display='none';
+  document.getElementById('me').style.display='none';
+  document.getElementById('timerPill').style.display='';
+  document.getElementById('timerPill').classList.remove('urgent');
+  document.getElementById('le').textContent='⏱';
+  document.getElementById('se').textContent='0';
+  document.getElementById('beLabel').textContent='Highest';
+  document.getElementById('be').textContent=getTaBest().toLocaleString()||'0';
+  document.getElementById('be').style.color='';
+  cancelSlice(); updateSliceBtn(); resize();
+
+  // start countdown
+  clearInterval(_taTimer);
+  let remaining=TA_DURATION;
+  updateTimerDisplay(remaining);
+  _taTimer=setInterval(()=>{
+    remaining--;
+    updateTimerDisplay(remaining);
+    if(remaining<=10)document.getElementById('timerPill').classList.add('urgent');
+    if(remaining<=0){clearInterval(_taTimer);endTimedGame();}
+  },1000);
+}
+
+function updateTimerDisplay(sec){
+  const m=Math.floor(sec/60), s=sec%60;
+  document.getElementById('timerPill').textContent=m+':'+(s<10?'0':'')+s;
+}
+
+function getTaBest(){return+localStorage.getItem('cb3d_ta_best')||0;}
+
+function endTimedGame(){
+  gameRunning=false;
+  clearInterval(_taTimer);
+  const best=Math.max(score,getTaBest());
+  localStorage.setItem('cb3d_ta_best',best);
+  document.getElementById('me').style.display='';
+  document.getElementById('timerPill').style.display='none';
+  document.getElementById('taScore').textContent=score.toLocaleString();
+  document.getElementById('taBest').textContent=best.toLocaleString();
+  setTimeout(()=>document.getElementById('taOv').classList.remove('hidden'),400);
 }
 
 // Boot — 只渲染画布，显示启动页

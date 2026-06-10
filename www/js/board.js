@@ -197,7 +197,6 @@ function spawnParticles(fi,r,c,noteIdx){
   const col=COLORS[gems[fi][r][c].color];
   const colLo=COLORS_LO[gems[fi][r][c].color];
 
-  // Shards — colored squares that spin outward
   const shardCount=6+Math.floor(Math.random()*3);
   const baseSize=projScale*CSIZ*0.9;
   for(let i=0;i<shardCount;i++){
@@ -216,13 +215,11 @@ function spawnParticles(fi,r,c,noteIdx){
     });
   }
 
-  // Small dust dots
   for(let i=0;i<8;i++){
     const a=Math.random()*Math.PI*2,s=2+Math.random()*6;
     particles.push({x:sx,y:sy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
       life:0.8,decay:.04+Math.random()*.03,size:2+Math.random()*3,col,spark:false});
   }
-  // Sparks
   for(let i=0;i<6;i++){
     const a=Math.random()*Math.PI*2,s=3+Math.random()*7;
     particles.push({x:sx,y:sy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,

@@ -230,7 +230,6 @@ function drawParticles(){
     ctx.save();
     ctx.globalAlpha=p.life*(p.spark?1:0.9);
     if(p.shard){
-      // Draw rotating square shard
       ctx.translate(p.x,p.y);
       ctx.rotate(p.rot);
       ctx.fillStyle=p.col;

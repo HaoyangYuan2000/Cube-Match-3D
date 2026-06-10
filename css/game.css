@@ -128,37 +128,7 @@ body{
 .slice-arrow:active{transform:translate(-50%,-50%) scale(.88);}
 #sliceCW  {background:linear-gradient(135deg,#7c6fff,#a855f7);box-shadow:0 4px 18px rgba(124,111,255,.55);}
 #sliceCCW {background:linear-gradient(135deg,#ff5fa0,#f59e0b);box-shadow:0 4px 18px rgba(255,95,160,.55);}
-/* ── Level Menu ── */
-.lv-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:10px;
-  width:100%;max-width:300px;padding:2px 4px;
-  flex-shrink:0;
-}
-.lv-card{
-  background:var(--panel);border:1px solid rgba(124,111,255,.22);
-  border-radius:16px;padding:13px 10px 11px;cursor:pointer;
-  transition:transform .15s,border-color .15s,box-shadow .15s;
-  text-align:center;position:relative;overflow:hidden;
-}
-.lv-card::before{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(124,111,255,.07),rgba(255,95,160,.04));
-  pointer-events:none;
-}
-.lv-card:not(.locked):hover{border-color:var(--accent);box-shadow:0 0 18px rgba(124,111,255,.35);transform:translateY(-2px);}
-.lv-card:not(.locked):active{transform:scale(.95);}
-.lv-card.locked{opacity:.38;cursor:default;}
-.lv-card.done{border-color:rgba(255,215,0,.35);}
-.lv-tag{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:2px;}
-.lv-num{
-  font-size:30px;font-weight:900;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  line-height:1.1;
-}
-.lv-stars{font-size:12px;letter-spacing:2px;margin:5px 0 4px;}
-.lv-info{font-size:10px;color:var(--muted);line-height:1.7;}
-.lv-goal{font-size:12px;font-weight:700;color:var(--text);margin-top:3px;}
+
 /* ── Back button ── */
 .back-btn{
   background:rgba(124,111,255,.12);border:1px solid rgba(124,111,255,.3);
@@ -298,3 +268,29 @@ body{
   0%,100%{box-shadow:0 4px 20px rgba(124,111,255,.5)}
   50%    {box-shadow:0 4px 40px rgba(124,111,255,.9),0 0 60px rgba(255,95,160,.4)}
 }
+
+/* ── Mode Select ── */
+.mode-card{
+  width:100%;display:flex;align-items:center;gap:14px;
+  background:var(--panel);border:1px solid rgba(124,111,255,.25);
+  border-radius:18px;padding:16px 18px;cursor:pointer;
+  text-align:left;transition:transform .15s,border-color .15s,box-shadow .15s;
+  color:var(--text);
+}
+.mode-card:hover{border-color:var(--accent);box-shadow:0 0 22px rgba(124,111,255,.35);transform:translateY(-2px);}
+.mode-card:active{transform:scale(.97);}
+.mode-icon{font-size:32px;flex-shrink:0;width:40px;text-align:center;}
+.mode-body{flex:1;}
+.mode-name{font-size:17px;font-weight:800;margin-bottom:3px;}
+.mode-desc{font-size:11px;color:var(--muted);line-height:1.5;}
+.mode-arrow{font-size:22px;color:var(--accent);font-weight:700;flex-shrink:0;}
+/* Timer pill (Time Attack HUD) */
+.timer-pill{
+  margin-left:auto;background:linear-gradient(135deg,#ef4444,#f59e0b);
+  border-radius:99px;padding:3px 12px;font-size:13px;font-weight:700;
+  box-shadow:0 0 10px rgba(239,68,68,.5);color:#fff;
+  animation:timerPulse 1s ease-in-out infinite;
+}
+.timer-pill.urgent{animation:timerUrgent .4s ease-in-out infinite;}
+@keyframes timerPulse{0%,100%{opacity:1}50%{opacity:.75}}
+@keyframes timerUrgent{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
