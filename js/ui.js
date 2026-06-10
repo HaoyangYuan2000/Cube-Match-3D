@@ -3,19 +3,37 @@
 // ── Nickname ──
 function getNickname(){ return localStorage.getItem('cb3d_nickname')||''; }
 
-function saveNickname(){
+async function saveNickname(){
   const val=document.getElementById('nickInput').value.trim();
-  if(!val)return;
-  localStorage.setItem('cb3d_nickname', val);
+  const pin=document.getElementById('nickPin').value.trim();
+  const btn=document.getElementById('nickConfirmBtn');
+  const err=document.getElementById('nickError');
+  if(!val){err.textContent='Please enter a nickname';err.style.display='';return;}
+  if(!pin){err.textContent='Please set a password';err.style.display='';return;}
+  btn.disabled=true;
+  btn.textContent='Checking...';
+  err.style.display='none';
+  const status=await checkNickname(val,pin);
+  if(status==='taken'){
+    err.textContent='Name taken — wrong password';
+    err.style.display='';
+    btn.disabled=false;
+    btn.textContent='Confirm';
+    return;
+  }
+  localStorage.setItem('cb3d_nickname',val);
+  localStorage.setItem('cb3d_pin',pin);
+  await claimNickname(val,pin);
   document.getElementById('nickOv').classList.add('hidden');
-  // resume pending end-screen
-  if(window._pendingEnd){const fn=window._pendingEnd;window._pendingEnd=null;fn();}
+  if(window._pendingAfterNick){const fn=window._pendingAfterNick;window._pendingAfterNick=null;fn();}
 }
 
-function ensureNickname(then){
-  if(getNickname()){then();return;}
-  window._pendingEnd=then;
+function showNickSetup(then){
+  window._pendingAfterNick=then||null;
   document.getElementById('nickInput').value='';
+  document.getElementById('nickError').style.display='none';
+  document.getElementById('nickConfirmBtn').disabled=false;
+  document.getElementById('nickConfirmBtn').textContent='Confirm';
   document.getElementById('nickOv').classList.remove('hidden');
   setTimeout(()=>document.getElementById('nickInput').focus(),100);
 }
@@ -164,6 +182,8 @@ async function onPlay(){
   await initFirebase();
   const progress=await loadProgress();
   if(progress){
+    // 恢复昵称（重装app后从云端恢复）
+    if(progress.nickname&&!getNickname())localStorage.setItem('cb3d_nickname',progress.nickname);
     // 恢复星星
     if(progress.stars)Object.entries(progress.stars).forEach(([i,s])=>localStorage.setItem('cb3d_s'+i,s));
     // 恢复每关最多剩余步数
@@ -191,8 +211,14 @@ async function onPlay(){
   window._showTutorial = !progress?.tutorialDone;
 
   document.getElementById('splashOv').classList.add('hidden');
-  showModeSelect();
   updateSliceBtn();
+
+  // 首次进入要求设置昵称
+  if(!getNickname()){
+    showNickSetup(()=>showModeSelect());
+  } else {
+    showModeSelect();
+  }
 }
 
 // ── Leaderboard overlay ──
@@ -280,20 +306,18 @@ function startClassicGame(){
 
 function getClassicBest(){return+localStorage.getItem('cb3d_classic_best')||0;}
 
-function endClassicGame(){
+async function endClassicGame(){
   gameRunning=false;
   const best=Math.max(score,getClassicBest());
   localStorage.setItem('cb3d_classic_best',best);
   const finalScore=score;
-  ensureNickname(async()=>{
-    await submitScore('classic',finalScore);
-    document.getElementById('classicScore').textContent=finalScore.toLocaleString();
-    document.getElementById('classicBest').textContent=best.toLocaleString();
-    document.getElementById('classicLb').innerHTML='<div class="lb-loading">Loading...</div>';
-    setTimeout(()=>document.getElementById('classicOv').classList.remove('hidden'),400);
-    const rows=await fetchLeaderboard('classic');
-    renderLeaderboard('classicLb',rows,localStorage.getItem('cb3d_did'));
-  });
+  await submitScore('classic',finalScore);
+  document.getElementById('classicScore').textContent=finalScore.toLocaleString();
+  document.getElementById('classicBest').textContent=best.toLocaleString();
+  document.getElementById('classicLb').innerHTML='<div class="lb-loading">Loading...</div>';
+  setTimeout(()=>document.getElementById('classicOv').classList.remove('hidden'),400);
+  const rows=await fetchLeaderboard('classic');
+  renderLeaderboard('classicLb',rows,localStorage.getItem('cb3d_did'));
 }
 
 // ── Time Attack ──
@@ -345,7 +369,7 @@ function updateTimerDisplay(sec){
 
 function getTaBest(){return+localStorage.getItem('cb3d_ta_best')||0;}
 
-function endTimedGame(){
+async function endTimedGame(){
   gameRunning=false;
   clearInterval(_taTimer);
   const best=Math.max(score,getTaBest());
@@ -353,15 +377,13 @@ function endTimedGame(){
   document.getElementById('me').style.display='';
   document.getElementById('timerPill').style.display='none';
   const finalScore=score;
-  ensureNickname(async()=>{
-    await submitScore('timed',finalScore);
-    document.getElementById('taScore').textContent=finalScore.toLocaleString();
-    document.getElementById('taBest').textContent=best.toLocaleString();
-    document.getElementById('taLb').innerHTML='<div class="lb-loading">Loading...</div>';
-    setTimeout(()=>document.getElementById('taOv').classList.remove('hidden'),400);
-    const rows=await fetchLeaderboard('timed');
-    renderLeaderboard('taLb',rows,localStorage.getItem('cb3d_did'));
-  });
+  await submitScore('timed',finalScore);
+  document.getElementById('taScore').textContent=finalScore.toLocaleString();
+  document.getElementById('taBest').textContent=best.toLocaleString();
+  document.getElementById('taLb').innerHTML='<div class="lb-loading">Loading...</div>';
+  setTimeout(()=>document.getElementById('taOv').classList.remove('hidden'),400);
+  const rows=await fetchLeaderboard('timed');
+  renderLeaderboard('taLb',rows,localStorage.getItem('cb3d_did'));
 }
 
 // Boot — 只渲染画布，显示启动页

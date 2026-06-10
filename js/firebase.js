@@ -54,6 +54,29 @@ async function markTutorialDone() {
   await saveProgress('tutorialDone', true);
 }
 
+// ── Nickname uniqueness ──
+
+// Returns: 'available' | 'yours' | 'taken'
+async function checkNickname(name, pin) {
+  if (!_db) return 'available';
+  try {
+    const doc = await _db.collection('nicknames').doc(name.toLowerCase()).get();
+    if (!doc.exists) return 'available';
+    const data = doc.data();
+    if (data.deviceId === _deviceId) return 'yours';
+    // Name taken by another device — allow reclaim only if PIN matches
+    return data.pin === pin ? 'available' : 'taken';
+  } catch (e) { return 'available'; }
+}
+
+async function claimNickname(name, pin) {
+  if (!_db || !_deviceId) return;
+  try {
+    await _db.collection('nicknames').doc(name.toLowerCase()).set({ deviceId: _deviceId, pin });
+    await saveProgress('nickname', name);
+  } catch (e) {}
+}
+
 // ── Leaderboard ──
 
 async function submitScore(mode, score) {

@@ -381,7 +381,7 @@ function processMatches(matches,chain){
   const label=hasRocket?`🚀+${gained}`:hasBomb?`💣+${gained}`:`+${gained}${chain>0?'🔥'.repeat(Math.min(chain,3)):''}`;
   showFloat(label,avgSX,avgSY);
   // 缩小到消失动画
-  const dur=36;let t=0;
+  const dur=18;let t=0;
   function elimStep(){
     t++;
     const p=Math.min(t/14,1); // shrink over first 14 frames

@@ -528,17 +528,21 @@
     <!-- Nickname Setup -->
     <div class="overlay hidden" id="nickOv">
       <div style="font-size:36px">👤</div>
-      <div class="ov-title">Your Name</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Shown on the leaderboard</div>
-      <input id="nickInput" type="text" maxlength="16" placeholder="Enter nickname"
+      <div class="ov-title">Choose a Name</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Shown on the global leaderboard</div>
+      <input id="nickInput" type="text" maxlength="16" placeholder="Nickname"
         style="width:100%;max-width:220px;padding:10px 14px;border-radius:12px;border:1px solid rgba(124,111,255,.4);background:rgba(255,255,255,.06);color:#fff;font-size:16px;text-align:center;outline:none;box-sizing:border-box"/>
-      <button class="btn btn-p" onclick="saveNickname()" style="margin-top:8px">Confirm</button>
+      <input id="nickPin" type="password" maxlength="16" placeholder="Password"
+        style="width:100%;max-width:220px;padding:10px 14px;border-radius:12px;border:1px solid rgba(124,111,255,.4);background:rgba(255,255,255,.06);color:#fff;font-size:14px;text-align:center;outline:none;box-sizing:border-box"
+        onkeydown="if(event.key==='Enter')saveNickname()"/>
+      <div id="nickError" style="display:none;font-size:12px;color:#ff5fa0;margin-top:2px;text-align:center;max-width:220px"></div>
+      <button id="nickConfirmBtn" class="btn btn-p" onclick="saveNickname()" style="margin-top:8px">Confirm</button>
     </div>
     <!-- Classic Result -->
     <div class="overlay hidden" id="classicOv">
       <div style="font-size:36px">🏆</div>
       <div class="ov-title">Out of Moves!</div>
-      <div style="display:flex;gap:28px;align-items:flex-end;justify-content:center;margin:4px 0 8px">
+      <div style="display:flex;gap:28px;align-items:center;justify-content:center;margin:4px 0 8px">
         <div style="text-align:center">
           <div style="font-size:11px;color:var(--muted);margin-bottom:2px">Your Score</div>
           <div class="ov-score" id="classicScore" style="font-size:32px">0</div>
@@ -556,7 +560,7 @@
     <div class="overlay hidden" id="taOv">
       <div style="font-size:36px">⏱️</div>
       <div class="ov-title">Time's Up!</div>
-      <div style="display:flex;gap:28px;align-items:flex-end;justify-content:center;margin:4px 0 8px">
+      <div style="display:flex;gap:28px;align-items:center;justify-content:center;margin:4px 0 8px">
         <div style="text-align:center">
           <div style="font-size:11px;color:var(--muted);margin-bottom:2px">Your Score</div>
           <div class="ov-score" id="taScore" style="font-size:32px">0</div>
@@ -582,15 +586,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-installations-compat.js"></script>
-<script src="js/firebase.js?v=8"></script>
-<script src="js/audio.js?v=8"></script>
-<script src="js/math.js?v=8"></script>
-<script src="js/config.js?v=8"></script>
-<script src="js/state.js?v=8"></script>
-<script src="js/render.js?v=8"></script>
-<script src="js/board.js?v=8"></script>
-<script src="js/slice.js?v=8"></script>
-<script src="js/input.js?v=8"></script>
-<script src="js/ui.js?v=8"></script>
+<script src="js/firebase.js?v=10"></script>
+<script src="js/audio.js?v=10"></script>
+<script src="js/math.js?v=10"></script>
+<script src="js/config.js?v=10"></script>
+<script src="js/state.js?v=10"></script>
+<script src="js/render.js?v=10"></script>
+<script src="js/board.js?v=10"></script>
+<script src="js/slice.js?v=10"></script>
+<script src="js/input.js?v=10"></script>
+<script src="js/ui.js?v=10"></script>
 </body>
 </html>
