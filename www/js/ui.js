@@ -302,6 +302,7 @@ function startClassicGame(){
   document.getElementById('beLabel').textContent='Best';
   document.getElementById('be').textContent=getClassicBest().toLocaleString()||'0';
   cancelSlice(); updateSliceBtn(); updateHUD(); resize();
+  if(window._showTutorial){window._showTutorial=false;setTimeout(showTutorial,300);}
 }
 
 function getClassicBest(){return+localStorage.getItem('cb3d_classic_best')||0;}
@@ -349,6 +350,7 @@ function startTimedGame(){
   document.getElementById('be').textContent=getTaBest().toLocaleString()||'0';
   document.getElementById('be').style.color='';
   cancelSlice(); updateSliceBtn(); resize();
+  if(window._showTutorial){window._showTutorial=false;setTimeout(showTutorial,300);}
 
   // start countdown
   clearInterval(_taTimer);

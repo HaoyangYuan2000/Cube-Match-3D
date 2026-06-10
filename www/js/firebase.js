@@ -66,7 +66,7 @@ async function checkNickname(name, pin) {
     if (data.deviceId === _deviceId) return 'yours';
     // Name taken by another device — allow reclaim only if PIN matches
     return data.pin === pin ? 'available' : 'taken';
-  } catch (e) { return 'available'; }
+  } catch (e) { return 'taken'; }
 }
 
 async function claimNickname(name, pin) {
