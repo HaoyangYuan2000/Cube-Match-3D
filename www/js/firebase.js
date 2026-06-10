@@ -54,6 +54,35 @@ async function markTutorialDone() {
   await saveProgress('tutorialDone', true);
 }
 
+// ── Leaderboard ──
+
+async function submitScore(mode, score) {
+  if (!_db || !_deviceId) return;
+  const col = mode === 'classic' ? 'leaderboard_classic' : 'leaderboard_timed';
+  const nickname = localStorage.getItem('cb3d_nickname') || 'Anonymous';
+  try {
+    await _db.collection(col).doc(_deviceId).set({
+      name: nickname,
+      score,
+      ts: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: false });
+  } catch (e) {}
+}
+
+async function fetchLeaderboard(mode) {
+  if (!_db) return [];
+  const col = mode === 'classic' ? 'leaderboard_classic' : 'leaderboard_timed';
+  try {
+    const snap = await _db.collection(col)
+      .orderBy('score', 'desc')
+      .limit(10)
+      .get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    return [];
+  }
+}
+
 // 通关时批量保存所有进度
 async function saveAllProgress() {
   if (!_db || !_deviceId) return;

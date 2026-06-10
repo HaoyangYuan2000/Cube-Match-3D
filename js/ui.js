@@ -1,5 +1,37 @@
 'use strict';
 
+// ── Nickname ──
+function getNickname(){ return localStorage.getItem('cb3d_nickname')||''; }
+
+function saveNickname(){
+  const val=document.getElementById('nickInput').value.trim();
+  if(!val)return;
+  localStorage.setItem('cb3d_nickname', val);
+  document.getElementById('nickOv').classList.add('hidden');
+  // resume pending end-screen
+  if(window._pendingEnd){const fn=window._pendingEnd;window._pendingEnd=null;fn();}
+}
+
+function ensureNickname(then){
+  if(getNickname()){then();return;}
+  window._pendingEnd=then;
+  document.getElementById('nickInput').value='';
+  document.getElementById('nickOv').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('nickInput').focus(),100);
+}
+
+// ── Leaderboard rendering ──
+function renderLeaderboard(elId, rows, myId){
+  const el=document.getElementById(elId);
+  if(!rows||!rows.length){el.innerHTML='<div class="lb-loading">No scores yet</div>';return;}
+  const medals=['🥇','🥈','🥉'];
+  el.innerHTML=rows.map((r,i)=>{
+    const isMe=r.id===myId;
+    const rank=i<3?`<span class="lb-rank top">${medals[i]}</span>`:`<span class="lb-rank">${i+1}</span>`;
+    return`<div class="lb-row${isMe?' me':''}">${rank}<span class="lb-name">${r.name||'Anonymous'}</span><span class="lb-score">${(r.score||0).toLocaleString()}</span></div>`;
+  }).join('');
+}
+
 function updateHUD(){
   document.getElementById('se').textContent=score.toLocaleString();
   if(window._gameMode==='timed'){
@@ -16,7 +48,7 @@ function checkEnd(){
 }
 
 function hideAll(){
-  ['modeOv','taOv','classicOv'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  ['modeOv','taOv','classicOv','nickOv','lbOv'].forEach(id=>document.getElementById(id).classList.add('hidden'));
 }
 
 function updateSliceBtn(){
@@ -163,6 +195,39 @@ async function onPlay(){
   updateSliceBtn();
 }
 
+// ── Leaderboard overlay ──
+let _lbTab='classic';
+
+async function showLeaderboard(){
+  hideAll();
+  document.getElementById('splashOv').classList.add('hidden');
+  document.getElementById('hud').style.display='none';
+  document.getElementById('infoStrip').style.display='none';
+  document.getElementById('sliceBtn').style.display='none';
+  document.getElementById('backBtn').style.display='none';
+  document.getElementById('lbOv').classList.remove('hidden');
+  await loadLbTab('classic');
+}
+
+function hideLeaderboard(){
+  document.getElementById('lbOv').classList.add('hidden');
+  document.getElementById('splashOv').classList.remove('hidden');
+}
+
+async function switchLbTab(tab){
+  _lbTab=tab;
+  document.getElementById('lbTabClassic').classList.toggle('active',tab==='classic');
+  document.getElementById('lbTabTimed').classList.toggle('active',tab==='timed');
+  await loadLbTab(tab);
+}
+
+async function loadLbTab(tab){
+  const el=document.getElementById('lbMain');
+  el.innerHTML='<div class="lb-loading">Loading...</div>';
+  const rows=await fetchLeaderboard(tab);
+  renderLeaderboard('lbMain',rows,localStorage.getItem('cb3d_did'));
+}
+
 function showModeSelect(){
   gameRunning=false;animating=false;sel=null;
   cancelSlice();
@@ -219,14 +284,21 @@ function endClassicGame(){
   gameRunning=false;
   const best=Math.max(score,getClassicBest());
   localStorage.setItem('cb3d_classic_best',best);
-  document.getElementById('classicScore').textContent=score.toLocaleString();
-  document.getElementById('classicBest').textContent=best.toLocaleString();
-  setTimeout(()=>document.getElementById('classicOv').classList.remove('hidden'),400);
+  const finalScore=score;
+  ensureNickname(async()=>{
+    await submitScore('classic',finalScore);
+    document.getElementById('classicScore').textContent=finalScore.toLocaleString();
+    document.getElementById('classicBest').textContent=best.toLocaleString();
+    document.getElementById('classicLb').innerHTML='<div class="lb-loading">Loading...</div>';
+    setTimeout(()=>document.getElementById('classicOv').classList.remove('hidden'),400);
+    const rows=await fetchLeaderboard('classic');
+    renderLeaderboard('classicLb',rows,localStorage.getItem('cb3d_did'));
+  });
 }
 
 // ── Time Attack ──
 let _taTimer=null;
-const TA_DURATION=120; // seconds
+const TA_DURATION=60; // seconds
 
 function startTimedGame(){
   window._gameMode='timed';
@@ -280,9 +352,16 @@ function endTimedGame(){
   localStorage.setItem('cb3d_ta_best',best);
   document.getElementById('me').style.display='';
   document.getElementById('timerPill').style.display='none';
-  document.getElementById('taScore').textContent=score.toLocaleString();
-  document.getElementById('taBest').textContent=best.toLocaleString();
-  setTimeout(()=>document.getElementById('taOv').classList.remove('hidden'),400);
+  const finalScore=score;
+  ensureNickname(async()=>{
+    await submitScore('timed',finalScore);
+    document.getElementById('taScore').textContent=finalScore.toLocaleString();
+    document.getElementById('taBest').textContent=best.toLocaleString();
+    document.getElementById('taLb').innerHTML='<div class="lb-loading">Loading...</div>';
+    setTimeout(()=>document.getElementById('taOv').classList.remove('hidden'),400);
+    const rows=await fetchLeaderboard('timed');
+    renderLeaderboard('taLb',rows,localStorage.getItem('cb3d_did'));
+  });
 }
 
 // Boot — 只渲染画布，显示启动页
