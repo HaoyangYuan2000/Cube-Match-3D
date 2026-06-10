@@ -1,0 +1,16 @@
+{
+  "appId": "com.cubematch3d.game",
+  "appName": "Cube Match 3D",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
+}
