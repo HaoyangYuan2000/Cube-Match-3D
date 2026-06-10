@@ -19,8 +19,8 @@ const ADJ=[
 ];
 
 const FC=5;
-const COLORS    =['#e84444','#4488ee','#28cc66','#eebb22','#cc44ee'];
-const COLORS_LO =['#bb0808','#0044cc','#008833','#cc5500','#7700bb'];
+const COLORS    =['#e84444','#4488ee','#28cc66','#eebb22','#8822cc'];
+const COLORS_LO =['#bb0808','#0044cc','#008833','#cc5500','#550099'];
 const CAM=5.5;
 const CPAD=0.06, CGAP=0.03;
 const CSIZ=(2-2*CPAD-(FC-1)*CGAP)/FC;

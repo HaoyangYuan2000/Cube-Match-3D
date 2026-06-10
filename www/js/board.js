@@ -1,7 +1,7 @@
 'use strict';
 
 function cfg(){return LEVELS[Math.min(level,LEVELS.length-1)];}
-function nC(){return cfg().colors;}
+function nC(){return COLORS.length;}
 
 function safeColor(fi,r,c){
   const forbidden=new Set();
@@ -197,7 +197,7 @@ function spawnParticles(fi,r,c,noteIdx){
   const col=COLORS[gems[fi][r][c].color];
   const colLo=COLORS_LO[gems[fi][r][c].color];
 
-  const shardCount=6+Math.floor(Math.random()*3);
+  const shardCount=3+Math.floor(Math.random()*2);
   const baseSize=projScale*CSIZ*0.9;
   for(let i=0;i<shardCount;i++){
     const a=Math.random()*Math.PI*2;
@@ -207,7 +207,7 @@ function spawnParticles(fi,r,c,noteIdx){
       x:sx+(Math.random()-.5)*baseSize*0.3,
       y:sy+(Math.random()-.5)*baseSize*0.3,
       vx:Math.cos(a)*s, vy:Math.sin(a)*s-0.5,
-      life:1, decay:.010+Math.random()*.008,
+      life:1, decay:.014+Math.random()*.010,
       size:sz, col: Math.random()<0.5?col:colLo,
       rot:Math.random()*Math.PI*2,
       rotV:(Math.random()-.5)*0.12,
@@ -215,15 +215,15 @@ function spawnParticles(fi,r,c,noteIdx){
     });
   }
 
-  for(let i=0;i<8;i++){
+  for(let i=0;i<4;i++){
     const a=Math.random()*Math.PI*2,s=2+Math.random()*6;
     particles.push({x:sx,y:sy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
-      life:0.8,decay:.04+Math.random()*.03,size:2+Math.random()*3,col,spark:false});
+      life:0.8,decay:.05+Math.random()*.04,size:2+Math.random()*3,col,spark:false});
   }
-  for(let i=0;i<6;i++){
+  for(let i=0;i<3;i++){
     const a=Math.random()*Math.PI*2,s=3+Math.random()*7;
     particles.push({x:sx,y:sy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
-      life:0.7,decay:.05+Math.random()*.04,size:1.5+Math.random()*2,col:'#ffffff',spark:true});
+      life:0.7,decay:.06+Math.random()*.05,size:1.5+Math.random()*2,col:'#ffffff',spark:true});
   }
 }
 
@@ -380,17 +380,16 @@ function processMatches(matches,chain){
 
   const label=hasRocket?`🚀+${gained}`:hasBomb?`💣+${gained}`:`+${gained}${chain>0?'🔥'.repeat(Math.min(chain,3)):''}`;
   showFloat(label,avgSX,avgSY);
-  // 立即隐藏方块，让碎裂粒子做视觉
-  allMatches.forEach(([fi,r,c])=>{
-    const g=gems[fi]?.[r]?.[c];if(!g)return;
-    g.alpha=0;g.scale=0;
-  });
-  draw();
-
-  // 等粒子播完再清除并落下（粒子大约持续 ~600ms）
+  // 缩小到消失动画
   const dur=36;let t=0;
   function elimStep(){
     t++;
+    const p=Math.min(t/14,1); // shrink over first 14 frames
+    allMatches.forEach(([fi,r,c])=>{
+      const g=gems[fi]?.[r]?.[c];if(!g)return;
+      g.scale=1-p;
+      g.alpha=1-p;
+    });
     draw();
     if(t<dur)requestAnimationFrame(elimStep);
     else{
@@ -493,7 +492,7 @@ function applyGravity(done){
       }
     }
   }
-  let start=null;const dur=600;
+  let start=null;const dur=380;
   function step(ts){
     if(!start)start=ts;
     const p=Math.min((ts-start)/dur,1);

@@ -226,31 +226,31 @@ function drawCubeEdges(){
 
 function drawParticles(){
   particles=particles.filter(p=>p.life>0);
+  // cap total particles to avoid mobile slowdown
+  if(particles.length>120)particles.splice(0,particles.length-120);
+  ctx.save();
   for(const p of particles){
-    ctx.save();
     ctx.globalAlpha=p.life*(p.spark?1:0.9);
     if(p.shard){
+      ctx.fillStyle=p.col;
+      ctx.save();
       ctx.translate(p.x,p.y);
       ctx.rotate(p.rot);
-      ctx.fillStyle=p.col;
-      ctx.shadowColor=p.col;
-      ctx.shadowBlur=6;
       const s=p.size*p.life;
       ctx.fillRect(-s/2,-s/2,s,s);
+      ctx.restore();
       p.rot+=p.rotV;
     } else {
       ctx.fillStyle=p.col;
-      ctx.shadowColor=p.col;
-      ctx.shadowBlur=p.spark?4:16;
       const r=p.size*(p.spark?p.life*0.6:p.life);
       ctx.beginPath();ctx.arc(p.x,p.y,Math.max(0.5,r),0,Math.PI*2);ctx.fill();
     }
-    ctx.restore();
     p.x+=p.vx;p.y+=p.vy;
     p.vy+=p.shard?0.06:(p.spark?0.05:0.18);
     p.vx*=0.96;
     p.life-=p.decay;
   }
+  ctx.restore();
 }
 
 function draw(){
