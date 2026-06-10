@@ -3,9 +3,12 @@
 const LIGHT=v3.norm([0.5,0.9,-0.5]);
 
 function resize(){
+  const dpr=window.devicePixelRatio||1;
   const w=canvas.parentElement.clientWidth;
   const h=canvas.parentElement.clientHeight;
-  canvas.width=w; canvas.height=h;
+  canvas.width=w*dpr; canvas.height=h*dpr;
+  canvas.style.width=w+'px'; canvas.style.height=h+'px';
+  ctx.scale(dpr,dpr);
   cx=w/2; cy=h/2;
   projScale=Math.min(w,h)*0.38;
   draw();
