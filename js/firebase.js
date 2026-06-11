@@ -11,7 +11,7 @@ const firebaseConfig = {
 
 let _db = null;
 let _auth = null;
-let _deviceId = null;
+let _uid = null;
 let _initPromise = null;
 
 function initFirebase() {
@@ -28,7 +28,7 @@ function initFirebase() {
         if (!user) {
           try { await _auth.signInAnonymously(); } catch (e) {}
         }
-        _deviceId = _auth.currentUser ? _auth.currentUser.uid : _legacyDeviceId();
+        _uid = _auth.currentUser ? _auth.currentUser.uid : _legacyDeviceId();
         resolve();
       });
     });
@@ -57,7 +57,7 @@ async function _updateNicknameOwnership(newUid) {
   const nickname = localStorage.getItem('cb3d_nickname');
   if (!nickname) return;
   try {
-    await _db.collection('nicknames').doc(nickname).set({ uid: newUid, deviceId: newUid }, { merge: true });
+    await _db.collection('nicknames').doc(nickname).set({ uid: newUid }, { merge: true });
   } catch (e) {}
 }
 
@@ -106,45 +106,45 @@ async function linkWithGoogle() {
       if (!idToken) return { success: false, error: 'no_token' };
       const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
       let authResult;
-      const oldDeviceId = _deviceId; // save anonymous UID before switching
+      const oldDeviceId = _uid; // save anonymous UID before switching
       try {
         if (_auth.currentUser && _auth.currentUser.isAnonymous) {
           // Upgrade anonymous → Google, UID stays the same, no migration needed
           authResult = await _auth.currentUser.linkWithCredential(credential);
-          _deviceId = authResult.user.uid;
+          _uid = authResult.user.uid;
         } else {
           authResult = await _auth.signInWithCredential(credential);
-          _deviceId = authResult.user.uid;
+          _uid = authResult.user.uid;
         }
       } catch (e) {
         if (e.code === 'auth/credential-already-in-use') {
           // Google account already exists — sign in and migrate if needed
           authResult = await _auth.signInWithCredential(credential);
-          _deviceId = authResult.user.uid;
-          await _migrateProgressIfNeeded(oldDeviceId, _deviceId);
-          await _updateNicknameOwnership(_deviceId);
+          _uid = authResult.user.uid;
+          await _migrateProgressIfNeeded(oldDeviceId, _uid);
+          await _updateNicknameOwnership(_uid);
         } else throw e;
       }
       return { success: true, displayName: authResult.user.displayName };
     }
     // Web fallback (browser testing) — use popup
     const provider = new firebase.auth.GoogleAuthProvider();
-    const oldDeviceId = _deviceId;
+    const oldDeviceId = _uid;
     let result;
     try {
       if (_auth.currentUser && _auth.currentUser.isAnonymous) {
         result = await _auth.currentUser.linkWithPopup(provider);
-        _deviceId = result.user.uid;
+        _uid = result.user.uid;
       } else {
         result = await _auth.signInWithPopup(provider);
-        _deviceId = result.user.uid;
+        _uid = result.user.uid;
       }
     } catch (e) {
       if (e.code === 'auth/credential-already-in-use') {
         result = await _auth.signInWithPopup(provider);
-        _deviceId = result.user.uid;
-        await _migrateProgressIfNeeded(oldDeviceId, _deviceId);
-        await _updateNicknameOwnership(_deviceId);
+        _uid = result.user.uid;
+        await _migrateProgressIfNeeded(oldDeviceId, _uid);
+        await _updateNicknameOwnership(_uid);
       } else throw e;
     }
     return { success: true, displayName: result.user.displayName };
@@ -158,9 +158,9 @@ async function linkWithGoogle() {
 }
 
 async function loadProgress() {
-  if (!_db || !_deviceId) return null;
+  if (!_db || !_uid) return null;
   try {
-    const doc = await _db.collection('players').doc(_deviceId).get();
+    const doc = await _db.collection('players').doc(_uid).get();
     return doc.exists ? doc.data() : null;
   } catch (e) {
     return null;
@@ -168,9 +168,9 @@ async function loadProgress() {
 }
 
 async function saveProgress(key, value) {
-  if (!_db || !_deviceId) return;
+  if (!_db || !_uid) return;
   try {
-    await _db.collection('players').doc(_deviceId).set({ [key]: value }, { merge: true });
+    await _db.collection('players').doc(_uid).set({ [key]: value }, { merge: true });
   } catch (e) {}
 }
 
@@ -183,15 +183,15 @@ async function checkNickname(name) {
     const doc = await _db.collection('nicknames').doc(name).get();
     if (!doc.exists) return 'available';
     const data = doc.data();
-    if (data.uid === _deviceId || data.deviceId === _deviceId) return 'yours';
+    if (data.uid === _uid) return 'yours';
     return 'taken';
   } catch (e) { return 'taken'; }
 }
 
 async function claimNickname(name) {
-  if (!_db || !_deviceId) return;
+  if (!_db || !_uid) return;
   try {
-    await _db.collection('nicknames').doc(name).set({ uid: _deviceId, deviceId: _deviceId });
+    await _db.collection('nicknames').doc(name).set({ uid: _uid });
     await saveProgress('nickname', name);
   } catch (e) {}
 }
@@ -213,7 +213,7 @@ async function submitScore(mode, score) {
       ts: firebase.firestore.FieldValue.serverTimestamp()
     });
     delete _lbCache[mode]; // invalidate cache so next open shows fresh data
-  } catch (e) {}
+  } catch (e) { console.error('submitScore error:', e); }
 }
 
 const _lbCache = {};
@@ -238,7 +238,7 @@ async function fetchLeaderboard(mode) {
 }
 
 async function saveAllProgress() {
-  if (!_db || !_deviceId) return;
+  if (!_db || !_uid) return;
   const totalStars = LEVELS.reduce((sum, _, i) => sum + getStars(i), 0);
   let maxLevel = 0;
   for (let i = LEVELS.length - 1; i >= 0; i--) {
@@ -255,7 +255,7 @@ async function saveAllProgress() {
     if (v > 0) stars[i] = v;
   });
   try {
-    await _db.collection('players').doc(_deviceId).set({
+    await _db.collection('players').doc(_uid).set({
       stars, bestLeft, totalStars, maxLevel,
       tools: { slice: sliceUses },
       sliceDay: localStorage.getItem('cb3d_sliceday') || null,

@@ -229,7 +229,7 @@ function spawnParticles(fi,r,c,noteIdx){
 
 // ── Power-up helpers ──
 
-// Group matched cells into connected components (same face, adjacent)
+// Group matched cells into connected components (same face adjacent OR cross-face adjacent)
 function groupMatches(matches){
   const key=(fi,r,c)=>`${fi},${r},${c}`;
   const cellSet=new Set(matches.map(([fi,r,c])=>key(fi,r,c)));
@@ -243,10 +243,19 @@ function groupMatches(matches){
     while(queue.length){
       const[qfi,qr,qc]=queue.shift();
       group.push([qfi,qr,qc]);
+      // same-face neighbours
       for(const[nr,nc]of[[qr-1,qc],[qr+1,qc],[qr,qc-1],[qr,qc+1]]){
         if(nr<0||nr>=FC||nc<0||nc>=FC)continue;
         const nk=key(qfi,nr,nc);
         if(cellSet.has(nk)&&!visited.has(nk)){visited.add(nk);queue.push([qfi,nr,nc]);}
+      }
+      // cross-face neighbours
+      for(const[nfi,nr,nc]of matches){
+        const nk=key(nfi,nr,nc);
+        if(visited.has(nk))continue;
+        if(areCrossFaceAdjacent({fi:qfi,r:qr,c:qc},{fi:nfi,r:nr,c:nc})){
+          visited.add(nk);queue.push([nfi,nr,nc]);
+        }
       }
     }
     groups.push(group);
@@ -254,11 +263,19 @@ function groupMatches(matches){
   return groups;
 }
 
-// Bomb: 3x3 area around group center on same face
+// Return the face with the most cells in a group
+function majorityFace(group){
+  const count={};
+  for(const[fi]of group)count[fi]=(count[fi]||0)+1;
+  return+Object.keys(count).reduce((a,b)=>count[a]>=count[b]?a:b);
+}
+
+// Bomb: 3x3 area around group center on the majority face
 function getBombCells(group){
-  const fi=group[0][0];
-  const avgR=Math.round(group.reduce((s,[,r])=>s+r,0)/group.length);
-  const avgC=Math.round(group.reduce((s,[,,c])=>s+c,0)/group.length);
+  const fi=majorityFace(group);
+  const fCells=group.filter(([f])=>f===fi);
+  const avgR=Math.round(fCells.reduce((s,[,r])=>s+r,0)/fCells.length);
+  const avgC=Math.round(fCells.reduce((s,[,,c])=>s+c,0)/fCells.length);
   const cells=[];
   for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
     const nr=avgR+dr,nc=avgC+dc;
@@ -341,12 +358,10 @@ function processMatches(matches,chain){
     } else if(group.length>=4){
       hasBomb=true;
       getBombCells(group).forEach(([fi,r,c])=>expandedSet.add(`${fi},${r},${c}`));
-      // bomb center screen pos
-      const fi=group[0][0];
-      const avgR=Math.round(group.reduce((s,[,r2])=>s+r2,0)/group.length);
-      const avgC=Math.round(group.reduce((s,[,,c2])=>s+c2,0)/group.length);
-      const[bx,by]=project(m3.app(rot,faceUVto3D(FACES[fi],...cellUV(avgR,avgC))));
-      bombCX=bx;bombCY=by;
+      // bomb center = average screen position of all cells in group
+      let sx=0,sy=0;
+      for(const[fi,r,c]of group){const[px,py]=project(m3.app(rot,faceUVto3D(FACES[fi],...cellUV(r,c))));sx+=px;sy+=py;}
+      bombCX=sx/group.length;bombCY=sy/group.length;
     }
   }
 

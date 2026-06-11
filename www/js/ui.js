@@ -194,18 +194,29 @@ function updateSliceBtn(){
 }
 
 
+let _pendingCityToasts=[];
+
 function showCityToast(name){
   const wrap=document.getElementById('cw');
   if(!wrap)return;
   const el=document.createElement('div');
-  el.textContent='🏙️ New '+name+' Built! Check home screen';
-  el.style.cssText='position:absolute;top:18%;left:50%;transform:translateX(-50%) translateY(0);font-size:13px;white-space:nowrap;z-index:60;color:#ffe066;background:rgba(20,16,48,.85);padding:6px 16px;border-radius:99px;border:1px solid rgba(255,224,102,.3);pointer-events:none;transition:transform 3s ease-out,opacity 3s ease-out';
+  el.textContent='🏙️ '+name+' Built!';
+  el.style.cssText='position:absolute;top:6%;left:50%;transform:translateX(-50%) translateY(0);font-size:13px;white-space:nowrap;z-index:60;color:#ffe066;background:rgba(20,16,48,.85);padding:6px 16px;border-radius:99px;border:1px solid rgba(255,224,102,.3);pointer-events:none;transition:transform 3s ease-out,opacity 3s ease-out';
   setTimeout(()=>requestAnimationFrame(()=>{
     el.style.transform='translateX(-50%) translateY(-40px)';
     el.style.opacity='0';
   }), 3000);
   wrap.appendChild(el);
   setTimeout(()=>el.remove(),6000);
+}
+
+function flushCityToasts(){
+  if(!_pendingCityToasts.length)return;
+  const msg=_pendingCityToasts.length===1
+    ?_pendingCityToasts[0]
+    :_pendingCityToasts.length+' new buildings';
+  showCityToast(msg);
+  _pendingCityToasts=[];
 }
 
 function showDailyToast(){
@@ -267,7 +278,7 @@ function updateCity(){
   const matsEl=document.getElementById('cityMats');
   if(matsEl)matsEl.textContent=n.toLocaleString();
 
-  CITY_STAGES.forEach(({id,threshold})=>{
+  CITY_STAGES.forEach(({id,threshold,name})=>{
     const el=document.getElementById(id);
     if(!el)return;
     const unlocked=n>=threshold;
@@ -276,7 +287,7 @@ function updateCity(){
       el.setAttribute('opacity','1');
       el.classList.add('rising');
       setTimeout(()=>el.classList.remove('rising'),800);
-      if(gameRunning)showCityToast(name);
+      if(gameRunning)_pendingCityToasts.push(name);
     } else if(unlocked){
       el.setAttribute('opacity','1');
     }
@@ -442,6 +453,7 @@ function startClassicGame(){
   document.getElementById('starHb').style.display='none';
   document.getElementById('timerPill').style.display='none';
   document.getElementById('me').style.display='';
+  document.getElementById('modeLabel').textContent='Moves Left';
   document.getElementById('le').textContent='🏆';
   document.getElementById('beLabel').textContent='Best';
   document.getElementById('be').textContent=getClassicBest().toLocaleString()||'0';
@@ -462,7 +474,7 @@ async function endClassicGame(){
   document.getElementById('classicScore').textContent=finalScore.toLocaleString();
   document.getElementById('classicBest').textContent=best.toLocaleString();
   document.getElementById('classicLb').innerHTML='<div class="lb-loading">Loading...</div>';
-  setTimeout(()=>document.getElementById('classicOv').classList.remove('hidden'),400);
+  setTimeout(()=>{document.getElementById('classicOv').classList.remove('hidden');flushCityToasts();},400);
   const rows=await fetchLeaderboard('classic');
   renderLeaderboard('classicLb',rows,localStorage.getItem('cb3d_nickname'));
   _incrementGamesPlayed();
@@ -492,6 +504,7 @@ function startTimedGame(){
   document.getElementById('me').style.display='none';
   document.getElementById('timerPill').style.display='';
   document.getElementById('timerPill').classList.remove('urgent');
+  document.getElementById('modeLabel').textContent='Time Left';
   document.getElementById('le').textContent='⏱';
   document.getElementById('se').textContent='0';
   document.getElementById('beLabel').textContent='Highest';
@@ -524,8 +537,7 @@ async function endTimedGame(){
   clearInterval(_taTimer);
   const best=Math.max(score,getTaBest());
   localStorage.setItem('cb3d_ta_best',best);
-  document.getElementById('me').style.display='';
-  document.getElementById('timerPill').style.display='none';
+  document.getElementById('timerPill').textContent='0:00';
   const finalScore=score;
   saveProgress('blocksElim',totalBlocksElim);
   saveProgress('taBest',best);
@@ -533,7 +545,7 @@ async function endTimedGame(){
   document.getElementById('taScore').textContent=finalScore.toLocaleString();
   document.getElementById('taBest').textContent=best.toLocaleString();
   document.getElementById('taLb').innerHTML='<div class="lb-loading">Loading...</div>';
-  setTimeout(()=>document.getElementById('taOv').classList.remove('hidden'),400);
+  setTimeout(()=>{document.getElementById('taOv').classList.remove('hidden');flushCityToasts();},400);
   const rows=await fetchLeaderboard('timed');
   renderLeaderboard('taLb',rows,localStorage.getItem('cb3d_nickname'));
   _incrementGamesPlayed();

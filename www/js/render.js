@@ -197,6 +197,8 @@ function drawParticles(){
   particles=particles.filter(p=>p.life>0);
   // cap total particles to avoid mobile slowdown
   if(particles.length>120)particles.splice(0,particles.length-120);
+  // keep animating until all particles are gone
+  if(particles.length>0&&!animating)requestAnimationFrame(draw);
   ctx.save();
   for(const p of particles){
     ctx.globalAlpha=p.life*(p.spark?1:0.9);
