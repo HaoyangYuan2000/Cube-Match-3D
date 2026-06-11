@@ -1,4 +1,4 @@
-package com.cubematch3d.game;
+package ai.nextad.cubematch3d;
 
 import com.getcapacitor.BridgeActivity;
 

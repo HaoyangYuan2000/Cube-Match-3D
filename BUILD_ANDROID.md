@@ -60,7 +60,7 @@ keytool -genkey -v -keystore ~/cubematch3d.keystore \
    或直接在 Android Studio 中用：**Build → Generate Signed Bundle/APK**
 
 ## 应用信息
-- 包名：com.cubematch3d.game
+- 包名：ai.nextad.cubematch3d
 - 版本：1.0
 - 最低 Android：5.1 (API 22)
 - 目标 Android：14 (API 34)

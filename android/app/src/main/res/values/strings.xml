@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">Cube Match 3D</string>
     <string name="title_activity_main">Cube Match 3D</string>
-    <string name="package_name">com.cubematch3d.game</string>
-    <string name="custom_url_scheme">com.cubematch3d.game</string>
+    <string name="package_name">ai.nextad.cubematch3d</string>
+    <string name="custom_url_scheme">ai.nextad.cubematch3d</string>
+    <string name="server_client_id">525393991475-6j5dhsua8jkor4rj3476dsqh45fvbaa6.apps.googleusercontent.com</string>
 </resources>

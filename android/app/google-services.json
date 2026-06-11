@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "525393991475",
+    "project_id": "cube-match-3d-nextai",
+    "storage_bucket": "cube-match-3d-nextai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:525393991475:android:54cff6749d84265b801046",
+        "android_client_info": {
+          "package_name": "ai.nextad.cubematch3d"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "525393991475-6cdh56d835hpbi2q30n0909s7huam84g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ai.nextad.cubematch3d",
+            "certificate_hash": "4655aab4e69cfa1283993e9638df24b94d6dbdc2"
+          }
+        },
+        {
+          "client_id": "525393991475-6j5dhsua8jkor4rj3476dsqh45fvbaa6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1EpNFzx9nBhjpXXjucYkpfsK5aRIVylE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "525393991475-6j5dhsua8jkor4rj3476dsqh45fvbaa6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

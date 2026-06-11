@@ -5,31 +5,130 @@ function getNickname(){ return localStorage.getItem('cb3d_nickname')||''; }
 
 async function saveNickname(){
   const val=document.getElementById('nickInput').value.trim();
-  const pin=document.getElementById('nickPin').value.trim();
   const btn=document.getElementById('nickConfirmBtn');
   const err=document.getElementById('nickError');
   if(!val){err.textContent='Please enter a nickname';err.style.display='';return;}
   if(val.length<2){err.textContent='Nickname must be at least 2 characters';err.style.display='';return;}
   if(val.length>16){err.textContent='Nickname must be 16 characters or fewer';err.style.display='';return;}
   if(!/^[a-zA-Z0-9_\- ]+$/.test(val)){err.textContent='Nickname can only contain letters, numbers, spaces, - and _';err.style.display='';return;}
-  if(!pin){err.textContent='Please set a password';err.style.display='';return;}
-  if(pin.length<4){err.textContent='Password must be at least 4 characters';err.style.display='';return;}
   btn.disabled=true;
   btn.textContent='Checking...';
   err.style.display='none';
-  const status=await checkNickname(val,pin);
+  const status=await checkNickname(val);
   if(status==='taken'){
-    err.textContent='Name taken — wrong password';
+    err.textContent='Name already taken';
     err.style.display='';
     btn.disabled=false;
     btn.textContent='Confirm';
     return;
   }
   localStorage.setItem('cb3d_nickname',val);
-  localStorage.setItem('cb3d_pin',pin);
-  await claimNickname(val,pin);
+  await claimNickname(val);
   document.getElementById('nickOv').classList.add('hidden');
   if(window._pendingAfterNick){const fn=window._pendingAfterNick;window._pendingAfterNick=null;fn();}
+}
+
+// ── Google account binding ──
+let _bindShownThisSession = false;
+
+function _incrementGamesPlayed(){
+  const n=(+localStorage.getItem('cb3d_gp')||0)+1;
+  localStorage.setItem('cb3d_gp',n);
+  return n;
+}
+
+function _shouldShowBindPrompt(){
+  if(_bindShownThisSession) return false;
+  if(!isAnonymousUser()) return false;
+  const n=+localStorage.getItem('cb3d_gp')||0;
+  return n>=3;
+}
+
+function onAccountBtn(){
+  if(!isAnonymousUser()){
+    // Already linked — show linked state in bindOv
+    document.getElementById('bindOv').classList.remove('hidden');
+    document.getElementById('bindOvTitle').textContent='Account Linked ✓';
+    document.getElementById('bindOvDesc').textContent='Your progress is saved to your Google account.';
+    document.getElementById('bindGoogleBtn').style.display='none';
+    document.getElementById('bindError').style.display='none';
+  } else {
+    // Anonymous — show bind prompt
+    document.getElementById('bindOvTitle').textContent='Save Your Progress';
+    document.getElementById('bindOvDesc').textContent='Link your Google account to sync progress across devices and never lose your score.';
+    document.getElementById('bindGoogleBtn').style.display='';
+    document.getElementById('bindGoogleBtn').disabled=false;
+    document.getElementById('bindError').style.display='none';
+    document.getElementById('bindOv').classList.remove('hidden');
+  }
+}
+
+function showBindPrompt(){
+  _bindShownThisSession=true;
+  document.getElementById('bindOvTitle').textContent='Save Your Progress';
+  document.getElementById('bindOvDesc').textContent='Link your Google account to sync progress across devices and never lose your score.';
+  document.getElementById('bindGoogleBtn').style.display='';
+  document.getElementById('bindGoogleBtn').disabled=false;
+  document.getElementById('bindError').style.display='none';
+  document.getElementById('bindOv').classList.remove('hidden');
+}
+
+function hideBindPrompt(){
+  document.getElementById('bindOv').classList.add('hidden');
+}
+
+async function doGoogleLink(){
+  const btn=document.getElementById('bindGoogleBtn');
+  const err=document.getElementById('bindError');
+  btn.disabled=true;
+  err.style.display='none';
+  await initFirebase();
+  const result=await linkWithGoogle();
+  if(result.success){
+    if(result.displayName&&!getNickname()){
+      const safe=result.displayName.replace(/[^a-zA-Z0-9_\- ]/g,'').slice(0,16);
+      if(safe.length>=2){
+        localStorage.setItem('cb3d_nickname',safe);
+        await claimNickname(safe);
+      }
+    }
+    hideBindPrompt();
+    showToast('✅ Account linked! Progress saved.');
+    // Reload progress from Firestore (Google account may have existing data) and refresh city
+    const progress=await loadProgress();
+    if(progress){
+      if(progress.nickname&&!getNickname())localStorage.setItem('cb3d_nickname',progress.nickname);
+      if(progress.stars)Object.entries(progress.stars).forEach(([i,s])=>localStorage.setItem('cb3d_s'+i,s));
+      if(progress.bestLeft)Object.entries(progress.bestLeft).forEach(([i,v])=>localStorage.setItem('cb3d_bl'+i,v));
+      if(progress.tools&&progress.tools.slice!=null){sliceUses=progress.tools.slice;updateSliceBtn();}
+      if(progress.blocksElim>totalBlocksElim){
+        totalBlocksElim=progress.blocksElim;
+        localStorage.setItem('cb3d_blocks',totalBlocksElim);
+      }
+    }
+    updateCity();
+  } else if(result.error==='cancelled'){
+    btn.disabled=false;
+  } else {
+    err.textContent='Sign-in failed ('+(result.error||'unknown')+')';
+    err.style.display='';
+    btn.disabled=false;
+  }
+}
+
+
+function showToast(msg){
+  const wrap=document.getElementById('cw');
+  if(!wrap)return;
+  const el=document.createElement('div');
+  el.textContent=msg;
+  el.style.cssText='position:absolute;top:18%;left:50%;transform:translateX(-50%) translateY(0);font-size:13px;white-space:nowrap;z-index:60;color:#ffe066;background:rgba(20,16,48,.9);padding:6px 16px;border-radius:99px;border:1px solid rgba(255,224,102,.3);pointer-events:none;transition:transform 3s ease-out,opacity 3s ease-out';
+  setTimeout(()=>requestAnimationFrame(()=>{
+    el.style.transform='translateX(-50%) translateY(-40px)';
+    el.style.opacity='0';
+  }), 3000);
+  wrap.appendChild(el);
+  setTimeout(()=>el.remove(),6000);
 }
 
 function showNickSetup(then){
@@ -70,7 +169,7 @@ function checkEnd(){
 }
 
 function hideAll(){
-  ['modeOv','taOv','classicOv','nickOv','lbOv'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  ['modeOv','taOv','classicOv','nickOv','lbOv','bindOv'].forEach(id=>document.getElementById(id).classList.add('hidden'));
 }
 
 function updateSliceBtn(){
@@ -84,13 +183,13 @@ function showCityToast(name){
   if(!wrap)return;
   const el=document.createElement('div');
   el.textContent='🏙️ New '+name+' Built! Check home screen';
-  el.style.cssText='position:absolute;top:18%;left:50%;transform:translateX(-50%) translateY(0);font-size:13px;white-space:nowrap;z-index:60;color:#ffe066;background:rgba(20,16,48,.85);padding:6px 16px;border-radius:99px;border:1px solid rgba(255,224,102,.3);pointer-events:none;transition:transform 2.5s ease-out,opacity 2.5s ease-out';
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  el.style.cssText='position:absolute;top:18%;left:50%;transform:translateX(-50%) translateY(0);font-size:13px;white-space:nowrap;z-index:60;color:#ffe066;background:rgba(20,16,48,.85);padding:6px 16px;border-radius:99px;border:1px solid rgba(255,224,102,.3);pointer-events:none;transition:transform 3s ease-out,opacity 3s ease-out';
+  setTimeout(()=>requestAnimationFrame(()=>{
     el.style.transform='translateX(-50%) translateY(-40px)';
     el.style.opacity='0';
-  }));
+  }), 3000);
   wrap.appendChild(el);
-  setTimeout(()=>el.remove(),3000);
+  setTimeout(()=>el.remove(),6000);
 }
 
 function showDailyToast(){
@@ -111,34 +210,40 @@ function showTutorial(){
 }
 
 
-function closeAd(){}
-function watchAdBonus(){}
-function watchAdContinue(){}
 
 // ── City building ──
 const CITY_STAGES=[
-  {id:'cs1',        threshold:500,   name:'House'},
-  {id:'cs2',        threshold:1000,  name:'Café'},
-  {id:'cs3',        threshold:1500,  name:'Apartments'},
-  {id:'cs4',        threshold:2000,  name:'Park'},
-  {id:'cs5',        threshold:2500,  name:'Office Tower'},
-  {id:'cs6',        threshold:3000,  name:'Skyscraper'},
-  {id:'cs7',        threshold:3500,  name:'Grand Tower'},
-  {id:'cs_lamps',   threshold:4000,  name:'Street Lamps'},
-  {id:'cs1b',       threshold:4500,  name:'House Garden'},
-  {id:'cs_balloon', threshold:5000,  name:'Hot Air Balloon'},
-  {id:'cs2b',       threshold:11000, name:'Café Terrace'},
-  {id:'cs_billboard',threshold:12000,name:'Neon Billboard'},
-  {id:'cs3b',       threshold:13000, name:'Rooftop Garden'},
-  {id:'cs_crane',   threshold:14000, name:'Construction Crane'},
-  {id:'cs5b',       threshold:15000, name:'Office Upgrade'},
-  {id:'cs_blimp',   threshold:16000, name:'Airship'},
-  {id:'cs4b',       threshold:17000, name:'Park Fountain'},
-  {id:'cs6b',       threshold:18000, name:'LED Skyscraper'},
-  {id:'cs_dish',    threshold:19000, name:'Satellite Dish'},
-  {id:'cs7b',       threshold:20000, name:'Observation Deck'},
-  {id:'cs_aurora2', threshold:21000, name:'Northern Lights'},
-  {id:'csfin',      threshold:22000, name:'Metropolis!'},
+  {id:'cs1',        threshold:100,   name:'House'},
+  {id:'cs2',        threshold:200,   name:'Café'},
+  {id:'cs3',        threshold:400,   name:'Apartments'},
+  {id:'cs4',        threshold:600,   name:'Park'},
+  {id:'cs5',        threshold:1000,  name:'Office Tower'},
+  {id:'cs6',        threshold:1500,  name:'Skyscraper'},
+  {id:'cs7',        threshold:2000,  name:'Grand Tower'},
+  {id:'cs_lamps',   threshold:2500,  name:'Street Lamps'},
+  {id:'cs1b',       threshold:3000,  name:'House Garden'},
+  {id:'cs_balloon', threshold:3500,  name:'Hot Air Balloon'},
+  {id:'cs2b',       threshold:4500,  name:'Café Terrace'},
+  {id:'cs_billboard',threshold:5500, name:'Neon Billboard'},
+  {id:'cs3b',       threshold:6500,  name:'Rooftop Garden'},
+  {id:'cs_crane',   threshold:7500,  name:'Construction Crane'},
+  {id:'cs5b',       threshold:8500,  name:'Office Upgrade'},
+  {id:'cs_blimp',   threshold:9500,  name:'Airship'},
+  {id:'cs4b',       threshold:10500, name:'Park Fountain'},
+  {id:'cs6b',       threshold:11500, name:'LED Skyscraper'},
+  {id:'cs_dish',    threshold:12500, name:'Satellite Dish'},
+  {id:'cs7b',        threshold:13500, name:'Observation Deck'},
+  {id:'cs_aurora2',  threshold:15000, name:'Northern Lights'},
+  {id:'csfin',       threshold:16500, name:'Metropolis!'},
+  {id:'cs_harbor',   threshold:18000, name:'Harbor'},
+  {id:'cs_stadium',  threshold:19500, name:'Stadium'},
+  {id:'cs_monorail', threshold:21000, name:'Monorail'},
+  {id:'cs_museum',   threshold:22500, name:'Museum'},
+  {id:'cs_spire',    threshold:24000, name:'Crystal Spire'},
+  {id:'cs_arcadium', threshold:25500, name:'Arcadium'},
+  {id:'cs_colosseum',threshold:27000, name:'Colosseum'},
+  {id:'cs_dome',     threshold:28500, name:'Futuristic Dome'},
+  {id:'cs_finale2',  threshold:30000, name:'City of Stars'},
 ];
 
 function updateCity(){
@@ -195,7 +300,7 @@ function showSplash(){
 
 async function onPlay(){
   const btn=document.getElementById('playBtn');
-  btn.textContent='Loading...';
+  btn.textContent='▶ \xa0Loading…';
   btn.disabled=true;
 
   await initFirebase();
@@ -340,6 +445,8 @@ async function endClassicGame(){
   setTimeout(()=>document.getElementById('classicOv').classList.remove('hidden'),400);
   const rows=await fetchLeaderboard('classic');
   renderLeaderboard('classicLb',rows,localStorage.getItem('cb3d_nickname'));
+  _incrementGamesPlayed();
+  if(_shouldShowBindPrompt()) setTimeout(showBindPrompt, 1800);
 }
 
 // ── Time Attack ──
@@ -408,6 +515,8 @@ async function endTimedGame(){
   setTimeout(()=>document.getElementById('taOv').classList.remove('hidden'),400);
   const rows=await fetchLeaderboard('timed');
   renderLeaderboard('taLb',rows,localStorage.getItem('cb3d_nickname'));
+  _incrementGamesPlayed();
+  if(_shouldShowBindPrompt()) setTimeout(showBindPrompt, 1800);
 }
 
 // Boot — 只渲染画布，显示启动页

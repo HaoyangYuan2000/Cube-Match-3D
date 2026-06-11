@@ -1,5 +1,5 @@
 {
-  "appId": "com.cubematch3d.game",
+  "appId": "ai.nextad.cubematch3d",
   "appName": "Cube Match 3D",
   "webDir": "www",
   "server": {
@@ -11,6 +11,11 @@
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 0
+    },
+    "GoogleAuth": {
+      "scopes": ["profile", "email"],
+      "serverClientId": "525393991475-6j5dhsua8jkor4rj3476dsqh45fvbaa6.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
     }
   }
 }
