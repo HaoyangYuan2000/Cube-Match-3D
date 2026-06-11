@@ -310,5 +310,7 @@ body{
   animation:timerPulse 1s ease-in-out infinite;
 }
 .timer-pill.urgent{animation:timerUrgent .4s ease-in-out infinite;}
+.timer-pill.frozen{background:linear-gradient(135deg,#60a5fa,#e0f2fe);box-shadow:0 0 12px rgba(96,165,250,.7);color:#1e3a5f;animation:timerFrozen 0.8s ease-in-out infinite;}
 @keyframes timerPulse{0%,100%{opacity:1}50%{opacity:.75}}
 @keyframes timerUrgent{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes timerFrozen{0%,100%{opacity:1;filter:brightness(1)}50%{opacity:.8;filter:brightness(1.25)}}

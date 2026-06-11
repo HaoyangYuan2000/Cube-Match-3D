@@ -234,6 +234,11 @@ function showDailyToast(){
 function showTutorial(){
   document.getElementById('tutOv').classList.remove('hidden');
   localStorage.setItem('cb3d_tut','1');
+  _taFreeze();
+}
+function closeTutorial(){
+  document.getElementById('tutOv').classList.add('hidden');
+  _taUnfreeze();
 }
 
 
@@ -483,7 +488,21 @@ async function endClassicGame(){
 
 // ── Time Attack ──
 let _taTimer=null;
+let _taRemaining=0;
+let _taPausedAt=null; // Date.now() when paused, null when running
 const TA_DURATION=60; // seconds
+
+function _taFreeze(){
+  if(window._gameMode!=='timed'||_taPausedAt!==null)return;
+  _taPausedAt=Date.now();
+  document.getElementById('timerPill').classList.add('frozen');
+}
+function _taUnfreeze(){
+  if(window._gameMode!=='timed'||_taPausedAt===null)return;
+  _taPausedAt=null;
+  document.getElementById('timerPill').classList.remove('frozen');
+  if(_taRemaining<=0){clearInterval(_taTimer);endTimedGame();}
+}
 
 function startTimedGame(){
   window._gameMode='timed';
@@ -515,13 +534,15 @@ function startTimedGame(){
 
   // start countdown
   clearInterval(_taTimer);
-  let remaining=TA_DURATION;
-  updateTimerDisplay(remaining);
+  _taRemaining=TA_DURATION;
+  _taPausedAt=null;
+  updateTimerDisplay(Math.ceil(_taRemaining));
   _taTimer=setInterval(()=>{
-    remaining--;
-    updateTimerDisplay(remaining);
-    if(remaining<=10)document.getElementById('timerPill').classList.add('urgent');
-    if(remaining<=0){clearInterval(_taTimer);endTimedGame();}
+    if(_taPausedAt!==null)return; // frozen — skip tick
+    _taRemaining=Math.max(0,_taRemaining-1);
+    updateTimerDisplay(Math.ceil(_taRemaining));
+    if(_taRemaining<=10)document.getElementById('timerPill').classList.add('urgent');
+    if(_taRemaining<=0){clearInterval(_taTimer);endTimedGame();}
   },1000);
 }
 
@@ -535,6 +556,8 @@ function getTaBest(){return+localStorage.getItem('cb3d_ta_best')||0;}
 async function endTimedGame(){
   gameRunning=false;
   clearInterval(_taTimer);
+  _taPausedAt=null;
+  document.getElementById('timerPill').classList.remove('frozen','urgent');
   const best=Math.max(score,getTaBest());
   localStorage.setItem('cb3d_ta_best',best);
   document.getElementById('timerPill').textContent='0:00';
@@ -550,6 +573,17 @@ async function endTimedGame(){
   renderLeaderboard('taLb',rows,localStorage.getItem('cb3d_nickname'));
   _incrementGamesPlayed();
   if(_shouldShowBindPrompt()) setTimeout(showBindPrompt, 1800);
+}
+
+// Freeze timer when app goes to background, resume when returning
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){_taFreeze();}else{_taUnfreeze();}
+});
+// Capacitor app state (Android home button / task switcher)
+if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
+  window.Capacitor.Plugins.App.addListener('appStateChange',({isActive})=>{
+    if(!isActive){_taFreeze();}else{_taUnfreeze();}
+  });
 }
 
 // Boot — 只渲染画布，显示启动页

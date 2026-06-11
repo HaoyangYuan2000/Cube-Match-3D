@@ -150,12 +150,14 @@ function handleTap(hit){
 function trySwap(a,b){
   computeFaceGravity();
   animating=true;
+  _taFreeze();
   animateSwap(a,b,()=>{
     moves--;
     const m=findAllMatches();
     if(!m.length){
       animateSwap(a,b,()=>{
         animating=false;
+        _taUnfreeze();
         updateHUD();
         checkEnd();
         draw();
@@ -479,7 +481,7 @@ function processMatches(matches,chain){
           updateHUD();
           const next=findAllMatches();
           if(next.length&&chain<6){processMatches(next,chain+1);return;}
-          animating=false;checkEnd();draw();
+          animating=false;_taUnfreeze();checkEnd();draw();
         });
       }
     }
