@@ -603,6 +603,7 @@
     </div>
     <!-- Mode Select -->
     <div class="overlay hidden" id="modeOv" style="gap:18px;padding:28px 20px">
+      <button class="back-btn" onclick="showSplash()" style="position:absolute;top:12px;left:12px">← Back</button>
       <div class="ov-title" style="font-size:24px">Choose Mode</div>
       <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:300px">
         <button class="mode-card" onclick="selectMode('classic')">
@@ -622,10 +623,10 @@
           <div class="mode-arrow">›</div>
         </button>
       </div>
-      <button class="btn btn-s" style="font-size:12px;padding:8px 20px" onclick="showSplash()">← Back</button>
     </div>
     <!-- Nickname Setup -->
     <div class="overlay hidden" id="nickOv">
+      <button class="back-btn" onclick="hideAll();showSplash()" style="position:absolute;top:12px;left:12px">← Back</button>
       <div style="font-size:36px">👤</div>
       <div class="ov-title">Choose a Name</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Shown on the global leaderboard</div>

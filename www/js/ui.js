@@ -104,6 +104,8 @@ async function doGoogleLink(){
         totalBlocksElim=progress.blocksElim;
         localStorage.setItem('cb3d_blocks',totalBlocksElim);
       }
+      if(progress.classicBest>getClassicBest())localStorage.setItem('cb3d_classic_best',progress.classicBest);
+      if(progress.taBest>getTaBest())localStorage.setItem('cb3d_ta_best',progress.taBest);
     }
     // Compute final slice count using Google account as source of truth
     const today=new Date().toDateString();
@@ -220,7 +222,7 @@ function showDailyToast(){
 
 function showTutorial(){
   document.getElementById('tutOv').classList.remove('hidden');
-  markTutorialDone();
+  localStorage.setItem('cb3d_tut','1');
 }
 
 
@@ -328,6 +330,9 @@ async function onPlay(){
     if(progress.bestLeft)Object.entries(progress.bestLeft).forEach(([i,v])=>localStorage.setItem('cb3d_bl'+i,v));
     // 恢复道具次数
     if(progress.tools&&progress.tools.slice!=null)sliceUses=progress.tools.slice;
+    // 恢复个人最高分（取本地和云端较大值）
+    if(progress.classicBest>getClassicBest())localStorage.setItem('cb3d_classic_best',progress.classicBest);
+    if(progress.taBest>getTaBest())localStorage.setItem('cb3d_ta_best',progress.taBest);
     // 恢复城市建材（取本地和云端较大值）
     if(progress.blocksElim>totalBlocksElim){
       totalBlocksElim=progress.blocksElim;
@@ -346,8 +351,7 @@ async function onPlay(){
     saveProgress('tools',{slice:sliceUses});saveProgress('sliceDay',today);
   }
 
-  // 用 Firebase 存档决定是否展示教程
-  window._showTutorial = !progress?.tutorialDone;
+  window._showTutorial = !localStorage.getItem('cb3d_tut');
 
   document.getElementById('splashOv').classList.add('hidden');
   updateSliceBtn();
@@ -453,6 +457,7 @@ async function endClassicGame(){
   localStorage.setItem('cb3d_classic_best',best);
   const finalScore=score;
   saveProgress('blocksElim',totalBlocksElim);
+  saveProgress('classicBest',best);
   await submitScore('classic',finalScore);
   document.getElementById('classicScore').textContent=finalScore.toLocaleString();
   document.getElementById('classicBest').textContent=best.toLocaleString();
@@ -523,6 +528,7 @@ async function endTimedGame(){
   document.getElementById('timerPill').style.display='none';
   const finalScore=score;
   saveProgress('blocksElim',totalBlocksElim);
+  saveProgress('taBest',best);
   await submitScore('timed',finalScore);
   document.getElementById('taScore').textContent=finalScore.toLocaleString();
   document.getElementById('taBest').textContent=best.toLocaleString();

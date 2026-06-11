@@ -65,11 +65,25 @@ async function _updateNicknameOwnership(newUid) {
 async function _migrateProgressIfNeeded(oldUid, newUid) {
   if (!_db || !oldUid || oldUid === newUid) return;
   try {
-    const newDoc = await _db.collection('players').doc(newUid).get();
-    if (newDoc.exists) return; // Google account already has progress, keep it
-    const oldDoc = await _db.collection('players').doc(oldUid).get();
+    const [newDoc, oldDoc] = await Promise.all([
+      _db.collection('players').doc(newUid).get(),
+      _db.collection('players').doc(oldUid).get(),
+    ]);
     if (!oldDoc.exists) return; // nothing to migrate
-    await _db.collection('players').doc(newUid).set(oldDoc.data());
+    if (!newDoc.exists) {
+      // Google account has no data — copy everything from anonymous
+      await _db.collection('players').doc(newUid).set(oldDoc.data());
+      return;
+    }
+    // Both exist — merge, taking the better value for scores
+    const o = oldDoc.data(), n = newDoc.data();
+    const merged = {};
+    if ((o.classicBest || 0) > (n.classicBest || 0)) merged.classicBest = o.classicBest;
+    if ((o.taBest || 0) > (n.taBest || 0)) merged.taBest = o.taBest;
+    if ((o.blocksElim || 0) > (n.blocksElim || 0)) merged.blocksElim = o.blocksElim;
+    if (Object.keys(merged).length > 0) {
+      await _db.collection('players').doc(newUid).set(merged, { merge: true });
+    }
   } catch (e) {}
 }
 
@@ -160,9 +174,6 @@ async function saveProgress(key, value) {
   } catch (e) {}
 }
 
-async function markTutorialDone() {
-  await saveProgress('tutorialDone', true);
-}
 
 // ── Nickname uniqueness ──
 
