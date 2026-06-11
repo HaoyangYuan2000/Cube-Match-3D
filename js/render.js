@@ -129,13 +129,17 @@ function drawGem(fi,r,c,bright){
 
 
 
-  // Flash white on elimination
+  // Flash overlay: gem.flash>0 = white, gem.flash<0 = black
   if(gem.flash){
     ctx.beginPath();
     ctx.moveTo(outer[0][0],outer[0][1]);
     outer.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));
     ctx.closePath();
-    ctx.fillStyle=`rgba(255,255,255,${gem.flash*0.75})`;
+    if(gem.flash>0){
+      ctx.fillStyle=`rgba(255,255,255,${gem.flash*0.85})`;
+    } else {
+      ctx.fillStyle=`rgba(0,0,0,${Math.abs(gem.flash)*0.85})`;
+    }
     ctx.fill();
   }
 
@@ -196,11 +200,21 @@ function drawCubeEdges(){
 function drawParticles(){
   particles=particles.filter(p=>p.life>0);
   // cap total particles to avoid mobile slowdown
-  if(particles.length>120)particles.splice(0,particles.length-120);
+  if(particles.length>160)particles.splice(0,particles.length-160);
   // keep animating until all particles are gone
   if(particles.length>0&&!animating)requestAnimationFrame(draw);
   ctx.save();
   for(const p of particles){
+    if(p.ring){
+      // expanding shockwave ring
+      const radius=p.size*(1.8-p.life);
+      ctx.globalAlpha=p.life*0.7;
+      ctx.strokeStyle=p.col;
+      ctx.lineWidth=2.5*(p.life);
+      ctx.beginPath();ctx.arc(p.x,p.y,Math.max(1,radius),0,Math.PI*2);ctx.stroke();
+      p.life-=p.decay;
+      continue;
+    }
     ctx.globalAlpha=p.life*(p.spark?1:0.9);
     if(p.shard){
       ctx.fillStyle=p.col;
@@ -217,8 +231,8 @@ function drawParticles(){
       ctx.beginPath();ctx.arc(p.x,p.y,Math.max(0.5,r),0,Math.PI*2);ctx.fill();
     }
     p.x+=p.vx;p.y+=p.vy;
-    p.vy+=p.shard?0.06:(p.spark?0.05:0.18);
-    p.vx*=0.96;
+    p.vy+=p.shard?0.07:(p.spark?0.05:0.18);
+    p.vx*=0.95;
     p.life-=p.decay;
   }
   ctx.restore();

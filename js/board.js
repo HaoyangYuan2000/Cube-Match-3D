@@ -196,34 +196,49 @@ function spawnParticles(fi,r,c,noteIdx){
   playShatter(sx,sy,canvas.width,canvas.height,noteIdx);
   const col=COLORS[gems[fi][r][c].color];
   const colLo=COLORS_LO[gems[fi][r][c].color];
+  const colHi=col.replace(/^#/,'')
+    .match(/.{2}/g).map(x=>Math.min(255,parseInt(x,16)+80))
+    .reduce((s,v)=>s+''+v.toString(16).padStart(2,'0'),'#');
 
-  const shardCount=3+Math.floor(Math.random()*2);
+  // flash ring
+  particles.push({x:sx,y:sy,vx:0,vy:0,life:0.6,decay:0.08,size:projScale*CSIZ*1.1,col:'#ffffff',ring:true});
+
+  // diamond shards
   const baseSize=projScale*CSIZ*0.9;
+  const shardCount=5+Math.floor(Math.random()*3);
   for(let i=0;i<shardCount;i++){
     const a=Math.random()*Math.PI*2;
-    const s=1.5+Math.random()*3.5;
-    const sz=baseSize*(0.3+Math.random()*0.4);
+    const s=2+Math.random()*4;
+    const sz=baseSize*(0.25+Math.random()*0.35);
     particles.push({
       x:sx+(Math.random()-.5)*baseSize*0.3,
       y:sy+(Math.random()-.5)*baseSize*0.3,
-      vx:Math.cos(a)*s, vy:Math.sin(a)*s-0.5,
-      life:1, decay:.014+Math.random()*.010,
-      size:sz, col: Math.random()<0.5?col:colLo,
+      vx:Math.cos(a)*s, vy:Math.sin(a)*s-1,
+      life:1, decay:.013+Math.random()*.009,
+      size:sz, col:Math.random()<0.4?colHi:Math.random()<0.6?col:colLo,
       rot:Math.random()*Math.PI*2,
-      rotV:(Math.random()-.5)*0.12,
+      rotV:(Math.random()-.5)*0.18,
       shard:true
     });
   }
 
-  for(let i=0;i<4;i++){
-    const a=Math.random()*Math.PI*2,s=2+Math.random()*6;
-    particles.push({x:sx,y:sy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
-      life:0.8,decay:.05+Math.random()*.04,size:2+Math.random()*3,col,spark:false});
-  }
-  for(let i=0;i<3;i++){
+  // glitter orbs
+  for(let i=0;i<5;i++){
     const a=Math.random()*Math.PI*2,s=3+Math.random()*7;
+    particles.push({x:sx,y:sy,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1,
+      life:0.9,decay:.045+Math.random()*.035,size:2+Math.random()*3,col,spark:false});
+  }
+  // white sparks
+  for(let i=0;i<4;i++){
+    const a=Math.random()*Math.PI*2,s=4+Math.random()*9;
     particles.push({x:sx,y:sy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
-      life:0.7,decay:.06+Math.random()*.05,size:1.5+Math.random()*2,col:'#ffffff',spark:true});
+      life:0.7,decay:.055+Math.random()*.045,size:1.5+Math.random()*2,col:'#ffffff',spark:true});
+  }
+  // color sparks
+  for(let i=0;i<3;i++){
+    const a=Math.random()*Math.PI*2,s=5+Math.random()*8;
+    particles.push({x:sx,y:sy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
+      life:0.6,decay:.06+Math.random()*.04,size:1+Math.random()*2,col:colHi,spark:true});
   }
 }
 
@@ -270,18 +285,38 @@ function majorityFace(group){
   return+Object.keys(count).reduce((a,b)=>count[a]>=count[b]?a:b);
 }
 
-// Bomb: 3x3 area around group center on the majority face
+// Bomb: 3x3 area around group center, including cross-face cells at edges
 function getBombCells(group){
   const fi=majorityFace(group);
   const fCells=group.filter(([f])=>f===fi);
   const avgR=Math.round(fCells.reduce((s,[,r])=>s+r,0)/fCells.length);
   const avgC=Math.round(fCells.reduce((s,[,,c])=>s+c,0)/fCells.length);
-  const cells=[];
+  const cellSet=new Set();
+  const addCell=(f,r,c)=>cellSet.add(`${f},${r},${c}`);
   for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
     const nr=avgR+dr,nc=avgC+dc;
-    if(nr>=0&&nr<FC&&nc>=0&&nc<FC)cells.push([fi,nr,nc]);
+    if(nr>=0&&nr<FC&&nc>=0&&nc<FC){
+      addCell(fi,nr,nc);
+    } else {
+      const er=Math.max(0,Math.min(FC-1,nr));
+      const ec=Math.max(0,Math.min(FC-1,nc));
+      for(const seam of CROSS_SEAMS){
+        // get this face's cells within this seam
+        const thisCells=seam.filter(s=>s.fi===fi);
+        const idxInHalf=thisCells.findIndex(s=>s.r===er&&s.c===ec);
+        if(idxInHalf<0)continue;
+        const otherFi=seam.find(s=>s.fi!==fi)?.fi;
+        if(otherFi==null)continue;
+        const otherCells=seam.filter(s=>s.fi===otherFi);
+        // mirror index: thisCells[half-1] is at the fold, maps to otherCells[0]
+        const half=thisCells.length;
+        const distFromFold=half-1-idxInHalf;
+        const mapped=otherCells[Math.min(distFromFold,otherCells.length-1)];
+        if(mapped)addCell(mapped.fi,mapped.r,mapped.c);
+      }
+    }
   }
-  return cells;
+  return [...cellSet].map(k=>k.split(',').map(Number));
 }
 
 // Rocket: clear entire horizontal ring (row r on 4 side faces 0-3)
@@ -295,37 +330,51 @@ function getRocketCells(group){
 
 // Bomb particle ring
 function spawnBombFX(cx,cy){
-  const cols=['#ff8800','#ffcc00','#ff4400','#ffffff'];
-  for(let i=0;i<28;i++){
-    const a=(i/28)*Math.PI*2;
-    const s=5+Math.random()*10;
+  const cols=['#ff8800','#ffcc00','#ff4400','#ffffff','#ffee88'];
+  // shockwave rings
+  particles.push({x:cx,y:cy,vx:0,vy:0,life:0.7,decay:0.045,size:8, col:'#ffcc00',ring:true});
+  particles.push({x:cx,y:cy,vx:0,vy:0,life:0.5,decay:0.06, size:4, col:'#ffffff',ring:true});
+  // burst particles
+  for(let i=0;i<36;i++){
+    const a=(i/36)*Math.PI*2;
+    const s=6+Math.random()*14;
     particles.push({
       x:cx,y:cy,
       vx:Math.cos(a)*s,vy:Math.sin(a)*s,
-      life:1,decay:0.012+Math.random()*0.01,
-      size:3+Math.random()*5,
+      life:1,decay:0.011+Math.random()*0.009,
+      size:3+Math.random()*6,
       col:cols[Math.floor(Math.random()*cols.length)],
       spark:true
     });
+  }
+  // inner hot core sparks
+  for(let i=0;i<12;i++){
+    const a=Math.random()*Math.PI*2,s=2+Math.random()*5;
+    particles.push({x:cx,y:cy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
+      life:0.8,decay:0.05,size:2+Math.random()*3,col:'#ffffff',spark:true});
   }
 }
 
 // Rocket particle sweep
 function spawnRocketFX(cells){
+  const cols=['#00ccff','#ffffff','#88eeff','#00aaff'];
   cells.forEach(([fi,r,c])=>{
     if(!gems[fi]?.[r]?.[c])return;
     const f=FACES[fi];
     const[u,v]=cellUV(r,c);
     const[sx,sy]=project(m3.app(rot,faceUVto3D(f,u,v)));
-    for(let i=0;i<4;i++){
+    // flash per cell
+    particles.push({x:sx,y:sy,vx:0,vy:0,life:0.5,decay:0.1,size:projScale*CSIZ*0.9,col:'#88eeff',ring:true});
+    for(let i=0;i<6;i++){
+      const a=Math.random()*Math.PI*2,s=3+Math.random()*7;
       particles.push({
-        x:sx+(Math.random()-.5)*8,
-        y:sy+(Math.random()-.5)*8,
-        vx:(Math.random()-.5)*5,
-        vy:-2-Math.random()*4,
-        life:0.9,decay:0.04+Math.random()*0.02,
-        size:2+Math.random()*3,
-        col:Math.random()<0.5?'#00ccff':'#ffffff',
+        x:sx+(Math.random()-.5)*6,
+        y:sy+(Math.random()-.5)*6,
+        vx:Math.cos(a)*s,
+        vy:Math.sin(a)*s-3,
+        life:0.9,decay:0.04+Math.random()*0.025,
+        size:1.5+Math.random()*3,
+        col:cols[Math.floor(Math.random()*cols.length)],
         spark:true
       });
     }
@@ -374,9 +423,7 @@ function processMatches(matches,chain){
   score+=gained;
   shakeAmt=Math.min(18, 4+chain*4+(hasBomb?4:0)+(hasRocket?6:0));
   let avgSX=0,avgSY=0;
-  const chainOffset=Math.min(chain*2,6);
-  allMatches.forEach(([fi,r,c],idx)=>{
-    spawnParticles(fi,r,c,chainOffset+(idx%3));
+  allMatches.forEach(([fi,r,c])=>{
     const f=FACES[fi];
     const[u,v]=cellUV(r,c);
     const[sx,sy]=project(m3.app(rot,faceUVto3D(f,u,v)));
@@ -384,41 +431,79 @@ function processMatches(matches,chain){
   });
   avgSX/=n;avgSY/=n;
 
-  // Power-up FX
-  if(hasBomb){spawnBombFX(bombCX,bombCY);playBoom(bombCX,canvas.width);}
-  if(hasRocket){spawnRocketFX(rocketCells);playRocket(avgSX,canvas.width);}
+  // Cells to flash before elimination (bomb 3x3 or rocket ring)
+  const flashSet = (hasBomb||hasRocket)
+    ? new Set([...expandedSet].filter(k=>{
+        const[fi,r,c]=k.split(',').map(Number);
+        return gems[fi]?.[r]?.[c]!=null;
+      }))
+    : new Set();
 
-  // City building materials
-  totalBlocksElim+=allMatches.length;
-  localStorage.setItem('cb3d_blocks',totalBlocksElim);
-  updateCity();
-
-  const label=hasRocket?`🚀+${gained}`:hasBomb?`💣+${gained}`:`+${gained}${chain>0?'🔥'.repeat(Math.min(chain,3)):''}`;
-  showFloat(label,avgSX,avgSY);
-  // 缩小到消失动画
-  const dur=18;let t=0;
-  function elimStep(){
-    t++;
-    const p=Math.min(t/14,1); // shrink over first 14 frames
-    allMatches.forEach(([fi,r,c])=>{
-      const g=gems[fi]?.[r]?.[c];if(!g)return;
-      g.scale=1-p;
-      g.alpha=1-p;
+  function doElim(){
+    const chainOffset=Math.min(chain*2,6);
+    allMatches.forEach(([fi,r,c],idx)=>{
+      spawnParticles(fi,r,c,chainOffset+(idx%3));
     });
-    draw();
-    if(t<dur)requestAnimationFrame(elimStep);
-    else{
-      allMatches.forEach(([fi,r,c])=>{if(gems[fi]?.[r]?.[c])gems[fi][r][c].flash=0;});
-      allMatches.forEach(([fi,r,c])=>{gems[fi][r][c]=null;});
-      applyGravity(()=>{
-        updateHUD();
-        const next=findAllMatches();
-        if(next.length&&chain<6){processMatches(next,chain+1);return;}
-        animating=false;checkEnd();draw();
+
+    // Power-up FX
+    if(hasBomb){spawnBombFX(bombCX,bombCY);playBoom(bombCX,canvas.width);}
+    if(hasRocket){spawnRocketFX(rocketCells);playRocket(avgSX,canvas.width);}
+
+    // City building materials
+    totalBlocksElim+=allMatches.length;
+    localStorage.setItem('cb3d_blocks',totalBlocksElim);
+    updateCity();
+
+    const label=hasRocket?`🚀+${gained}`:hasBomb?`💣+${gained}`:`+${gained}${chain>0?'🔥'.repeat(Math.min(chain,3)):''}`;
+    showFloat(label,avgSX,avgSY);
+
+    // 缩小到消失动画
+    const dur=18;let t=0;
+    function elimStep(){
+      t++;
+      const p=Math.min(t/14,1);
+      allMatches.forEach(([fi,r,c])=>{
+        const g=gems[fi]?.[r]?.[c];if(!g)return;
+        g.scale=1-p;
+        g.alpha=1-p;
       });
+      draw();
+      if(t<dur)requestAnimationFrame(elimStep);
+      else{
+        allMatches.forEach(([fi,r,c])=>{if(gems[fi]?.[r]?.[c])gems[fi][r][c].flash=0;});
+        allMatches.forEach(([fi,r,c])=>{gems[fi][r][c]=null;});
+        applyGravity(()=>{
+          updateHUD();
+          const next=findAllMatches();
+          if(next.length&&chain<6){processMatches(next,chain+1);return;}
+          animating=false;checkEnd();draw();
+        });
+      }
     }
+    requestAnimationFrame(elimStep);
   }
-  requestAnimationFrame(elimStep);
+
+  if((hasBomb||hasRocket) && flashSet.size>0){
+    const flashCells=allMatches.filter(([fi,r,c])=>flashSet.has(`${fi},${r},${c}`));
+    const seq=[-1,1,-1,1];
+    let si=0,ft=0;
+    const FLASH_DUR=5;
+    function flashStep(){
+      ft++;
+      const v=seq[si];
+      flashCells.forEach(([fi,r,c])=>{const g=gems[fi]?.[r]?.[c];if(g)g.flash=v;});
+      draw();
+      if(ft>=FLASH_DUR){si++;ft=0;}
+      if(si<seq.length) requestAnimationFrame(flashStep);
+      else{
+        flashCells.forEach(([fi,r,c])=>{const g=gems[fi]?.[r]?.[c];if(g)g.flash=0;});
+        doElim();
+      }
+    }
+    requestAnimationFrame(flashStep);
+  } else {
+    doElim();
+  }
 }
 
 // ── Gravity ──
