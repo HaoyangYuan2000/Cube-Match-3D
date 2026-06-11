@@ -9,7 +9,7 @@ let sel=null;
 let gameRunning=false,animating=false,spinning=false;
 let particles=[];
 let adPending=null;
-let sliceUses=6;
+let sliceUses=0;
 let totalBlocksElim=+localStorage.getItem('cb3d_blocks')||0;
 let sliceMode=null;
 let sliceFace=-1;

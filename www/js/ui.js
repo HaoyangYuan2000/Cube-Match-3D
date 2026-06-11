@@ -100,12 +100,26 @@ async function doGoogleLink(){
       if(progress.nickname&&!getNickname())localStorage.setItem('cb3d_nickname',progress.nickname);
       if(progress.stars)Object.entries(progress.stars).forEach(([i,s])=>localStorage.setItem('cb3d_s'+i,s));
       if(progress.bestLeft)Object.entries(progress.bestLeft).forEach(([i,v])=>localStorage.setItem('cb3d_bl'+i,v));
-      if(progress.tools&&progress.tools.slice!=null){sliceUses=progress.tools.slice;updateSliceBtn();}
       if(progress.blocksElim>totalBlocksElim){
         totalBlocksElim=progress.blocksElim;
         localStorage.setItem('cb3d_blocks',totalBlocksElim);
       }
     }
+    // Compute final slice count using Google account as source of truth
+    const today=new Date().toDateString();
+    const googleBase=progress&&progress.tools&&progress.tools.slice!=null?progress.tools.slice:0;
+    if(progress&&progress.sliceDay===today){
+      // Google already recorded today's bonus — use Google's count as-is
+      sliceUses=googleBase;
+      window._dailySliceBonus=false;
+    } else {
+      // Google hasn't given today's bonus yet — add it on top of Google's base
+      sliceUses=googleBase+6;
+      localStorage.setItem('cb3d_sliceday',today);
+      window._dailySliceBonus=true;
+      saveProgress('tools',{slice:sliceUses});saveProgress('sliceDay',today);
+    }
+    updateSliceBtn();
     updateCity();
   } else if(result.error==='cancelled'){
     btn.disabled=false;
@@ -321,14 +335,15 @@ async function onPlay(){
     }
   }
 
-  // 每日奖励：每天送 6 次 slice
+  // 每日奖励：localStorage 和云端双重校验，任意一个有今天日期就不发
   const today=new Date().toDateString();
-  const lastDay=localStorage.getItem('cb3d_sliceday');
-  if(lastDay!==today){
+  const cloudSliceDay=progress&&progress.sliceDay;
+  const localSliceDay=localStorage.getItem('cb3d_sliceday');
+  if(cloudSliceDay!==today&&localSliceDay!==today){
     sliceUses+=6;
     localStorage.setItem('cb3d_sliceday',today);
     window._dailySliceBonus=true;
-    saveProgress('tools',{slice:sliceUses}); // 立即同步
+    saveProgress('tools',{slice:sliceUses});saveProgress('sliceDay',today);
   }
 
   // 用 Firebase 存档决定是否展示教程

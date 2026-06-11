@@ -247,6 +247,7 @@ async function saveAllProgress() {
     await _db.collection('players').doc(_deviceId).set({
       stars, bestLeft, totalStars, maxLevel,
       tools: { slice: sliceUses },
+      sliceDay: localStorage.getItem('cb3d_sliceday') || null,
       blocksElim: totalBlocksElim
     }, { merge: true });
   } catch (e) {}
