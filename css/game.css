@@ -1,4 +1,4 @@
-*{margin:0;padding:0;box-sizing:border-box;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 :root{
   --bg:#07070e;--panel:#111128;--accent:#7c6fff;--accent2:#ff5fa0;--gold:#ffd700;
   --text:#eeeeff;--muted:#5a5a90;
@@ -55,7 +55,7 @@ body{
 }
 .ov-score{font-size:46px;font-weight:900;color:var(--gold);}
 .lb-entry-btn{width:52px;height:52px;padding:0;font-size:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
-.lb-tab{flex:1;padding:8px 0;border:1px solid rgba(124,111,255,.35);border-radius:10px;background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;transition:background .15s,color .15s;}
+.lb-tab{flex:1;padding:8px 0;border:1px solid rgba(124,111,255,.35);border-radius:10px;background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;transition:background .15s,color .15s;text-align:center;}
 .lb-tab.active{background:rgba(124,111,255,.25);color:var(--text);border-color:var(--accent);}
 .lb-box{
   width:100%;max-width:280px;max-height:180px;overflow-y:auto;
@@ -72,8 +72,8 @@ body{
 .lb-row.me{background:rgba(124,111,255,.15);}
 .lb-rank{width:20px;text-align:right;color:var(--muted);font-size:11px;flex-shrink:0;}
 .lb-rank.top{color:var(--gold);font-weight:900;font-size:13px;}
-.lb-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.lb-score{font-weight:700;color:var(--gold);flex-shrink:0;}
+.lb-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;}
+.lb-score{font-weight:700;color:var(--gold);flex-shrink:0;width:70px;text-align:right;}
 .lb-loading{padding:16px;color:var(--muted);font-size:12px;text-align:center;}
 .ov-box{
   background:var(--panel);border-radius:12px;padding:12px 16px;

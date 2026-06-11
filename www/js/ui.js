@@ -9,7 +9,11 @@ async function saveNickname(){
   const btn=document.getElementById('nickConfirmBtn');
   const err=document.getElementById('nickError');
   if(!val){err.textContent='Please enter a nickname';err.style.display='';return;}
+  if(val.length<2){err.textContent='Nickname must be at least 2 characters';err.style.display='';return;}
+  if(val.length>16){err.textContent='Nickname must be 16 characters or fewer';err.style.display='';return;}
+  if(!/^[a-zA-Z0-9_\- ]+$/.test(val)){err.textContent='Nickname can only contain letters, numbers, spaces, - and _';err.style.display='';return;}
   if(!pin){err.textContent='Please set a password';err.style.display='';return;}
+  if(pin.length<4){err.textContent='Password must be at least 4 characters';err.style.display='';return;}
   btn.disabled=true;
   btn.textContent='Checking...';
   err.style.display='none';
@@ -44,7 +48,7 @@ function renderLeaderboard(elId, rows, myId){
   if(!rows||!rows.length){el.innerHTML='<div class="lb-loading">No scores yet</div>';return;}
   const medals=['🥇','🥈','🥉'];
   el.innerHTML=rows.map((r,i)=>{
-    const isMe=r.id===myId;
+    const isMe=r.name===myId;
     const rank=i<3?`<span class="lb-rank top">${medals[i]}</span>`:`<span class="lb-rank">${i+1}</span>`;
     return`<div class="lb-row${isMe?' me':''}">${rank}<span class="lb-name">${r.name||'Anonymous'}</span><span class="lb-score">${(r.score||0).toLocaleString()}</span></div>`;
   }).join('');
@@ -75,6 +79,20 @@ function updateSliceBtn(){
 }
 
 
+function showCityToast(name){
+  const wrap=document.getElementById('cw');
+  if(!wrap)return;
+  const el=document.createElement('div');
+  el.textContent='🏙️ New '+name+' Built! Check home screen';
+  el.style.cssText='position:absolute;top:18%;left:50%;transform:translateX(-50%) translateY(0);font-size:13px;white-space:nowrap;z-index:60;color:#ffe066;background:rgba(20,16,48,.85);padding:6px 16px;border-radius:99px;border:1px solid rgba(255,224,102,.3);pointer-events:none;transition:transform 2.5s ease-out,opacity 2.5s ease-out';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    el.style.transform='translateX(-50%) translateY(-40px)';
+    el.style.opacity='0';
+  }));
+  wrap.appendChild(el);
+  setTimeout(()=>el.remove(),3000);
+}
+
 function showDailyToast(){
   const wrap=document.getElementById('cw');
   if(!wrap)return;
@@ -99,16 +117,16 @@ function watchAdContinue(){}
 
 // ── City building ──
 const CITY_STAGES=[
-  {id:'cs1',        threshold:1000,  name:'House'},
-  {id:'cs2',        threshold:2000,  name:'Café'},
-  {id:'cs3',        threshold:3000,  name:'Apartments'},
-  {id:'cs4',        threshold:4000,  name:'Park'},
-  {id:'cs5',        threshold:5000,  name:'Office Tower'},
-  {id:'cs6',        threshold:6000,  name:'Skyscraper'},
-  {id:'cs7',        threshold:7000,  name:'Grand Tower'},
-  {id:'cs_lamps',   threshold:8000,  name:'Street Lamps'},
-  {id:'cs1b',       threshold:9000,  name:'House Garden'},
-  {id:'cs_balloon', threshold:10000, name:'Hot Air Balloon'},
+  {id:'cs1',        threshold:500,   name:'House'},
+  {id:'cs2',        threshold:1000,  name:'Café'},
+  {id:'cs3',        threshold:1500,  name:'Apartments'},
+  {id:'cs4',        threshold:2000,  name:'Park'},
+  {id:'cs5',        threshold:2500,  name:'Office Tower'},
+  {id:'cs6',        threshold:3000,  name:'Skyscraper'},
+  {id:'cs7',        threshold:3500,  name:'Grand Tower'},
+  {id:'cs_lamps',   threshold:4000,  name:'Street Lamps'},
+  {id:'cs1b',       threshold:4500,  name:'House Garden'},
+  {id:'cs_balloon', threshold:5000,  name:'Hot Air Balloon'},
   {id:'cs2b',       threshold:11000, name:'Café Terrace'},
   {id:'cs_billboard',threshold:12000,name:'Neon Billboard'},
   {id:'cs3b',       threshold:13000, name:'Rooftop Garden'},
@@ -137,6 +155,7 @@ function updateCity(){
       el.setAttribute('opacity','1');
       el.classList.add('rising');
       setTimeout(()=>el.classList.remove('rising'),800);
+      if(gameRunning)showCityToast(name);
     } else if(unlocked){
       el.setAttribute('opacity','1');
     }
@@ -232,6 +251,7 @@ async function showLeaderboard(){
   document.getElementById('sliceBtn').style.display='none';
   document.getElementById('backBtn').style.display='none';
   document.getElementById('lbOv').classList.remove('hidden');
+  await initFirebase();
   await loadLbTab('classic');
 }
 
@@ -251,7 +271,7 @@ async function loadLbTab(tab){
   const el=document.getElementById('lbMain');
   el.innerHTML='<div class="lb-loading">Loading...</div>';
   const rows=await fetchLeaderboard(tab);
-  renderLeaderboard('lbMain',rows,localStorage.getItem('cb3d_did'));
+  renderLeaderboard('lbMain',rows,localStorage.getItem('cb3d_nickname'));
 }
 
 function showModeSelect(){
@@ -312,13 +332,14 @@ async function endClassicGame(){
   const best=Math.max(score,getClassicBest());
   localStorage.setItem('cb3d_classic_best',best);
   const finalScore=score;
+  saveProgress('blocksElim',totalBlocksElim);
   await submitScore('classic',finalScore);
   document.getElementById('classicScore').textContent=finalScore.toLocaleString();
   document.getElementById('classicBest').textContent=best.toLocaleString();
   document.getElementById('classicLb').innerHTML='<div class="lb-loading">Loading...</div>';
   setTimeout(()=>document.getElementById('classicOv').classList.remove('hidden'),400);
   const rows=await fetchLeaderboard('classic');
-  renderLeaderboard('classicLb',rows,localStorage.getItem('cb3d_did'));
+  renderLeaderboard('classicLb',rows,localStorage.getItem('cb3d_nickname'));
 }
 
 // ── Time Attack ──
@@ -379,13 +400,14 @@ async function endTimedGame(){
   document.getElementById('me').style.display='';
   document.getElementById('timerPill').style.display='none';
   const finalScore=score;
+  saveProgress('blocksElim',totalBlocksElim);
   await submitScore('timed',finalScore);
   document.getElementById('taScore').textContent=finalScore.toLocaleString();
   document.getElementById('taBest').textContent=best.toLocaleString();
   document.getElementById('taLb').innerHTML='<div class="lb-loading">Loading...</div>';
   setTimeout(()=>document.getElementById('taOv').classList.remove('hidden'),400);
   const rows=await fetchLeaderboard('timed');
-  renderLeaderboard('taLb',rows,localStorage.getItem('cb3d_did'));
+  renderLeaderboard('taLb',rows,localStorage.getItem('cb3d_nickname'));
 }
 
 // Boot — 只渲染画布，显示启动页
@@ -394,3 +416,4 @@ requestAnimationFrame(()=>requestAnimationFrame(()=>{
   rot=m3.mul(m3.rotX(-0.38),m3.mul(m3.rotY(0.5),m3.id()));
   draw();
 }));
+initFirebase();

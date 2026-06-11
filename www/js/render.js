@@ -59,45 +59,30 @@ function drawGem(fi,r,c,bright){
     const ca=Math.cos(a),sa=Math.sin(a);
     const u0=u+dxOff, v0=v+dyOff;
     const u2=u0*ca-v0*sa, v2=u0*sa+v0*ca;
-    const bv=h*0.22;
-    const hi=h-bv;
-    // helper: rotated corner at offset (ou, ov)
+    const bv=h*0.13;
     const rc=(ou,ov)=>project(m3.app(rot,faceUVto3D(f,
       u2+ou*ca-ov*sa, v2+ou*sa+ov*ca)));
     const outer=[rc(-h,h),rc(h,h),rc(h,-h),rc(-h,-h)];
-    const inner=[rc(-hi,hi),rc(hi,hi),rc(hi,-hi),rc(-hi,-hi)];
+    const inner=[rc(-h+bv,h-bv),rc(h-bv,h-bv),rc(h-bv,-h+bv),rc(-h+bv,-h+bv)];
     const col=COLORS[gem.color];
     const colLo=COLORS_LO[gem.color];
     ctx.save();ctx.globalAlpha=gem.alpha??1;
-    // Top bevel
-    ctx.beginPath();ctx.moveTo(outer[0][0],outer[0][1]);ctx.lineTo(outer[1][0],outer[1][1]);
-    ctx.lineTo(inner[1][0],inner[1][1]);ctx.lineTo(inner[0][0],inner[0][1]);ctx.closePath();
-    ctx.fillStyle=shadeHex(col,bright*1.35);ctx.fill();
-    // Left bevel
-    ctx.beginPath();ctx.moveTo(outer[3][0],outer[3][1]);ctx.lineTo(outer[0][0],outer[0][1]);
-    ctx.lineTo(inner[0][0],inner[0][1]);ctx.lineTo(inner[3][0],inner[3][1]);ctx.closePath();
-    ctx.fillStyle=shadeHex(col,bright*1.20);ctx.fill();
-    // Right bevel
-    ctx.beginPath();ctx.moveTo(outer[1][0],outer[1][1]);ctx.lineTo(outer[2][0],outer[2][1]);
-    ctx.lineTo(inner[2][0],inner[2][1]);ctx.lineTo(inner[1][0],inner[1][1]);ctx.closePath();
-    ctx.fillStyle=shadeHex(colLo,bright*0.72);ctx.fill();
-    // Bottom bevel
-    ctx.beginPath();ctx.moveTo(outer[2][0],outer[2][1]);ctx.lineTo(outer[3][0],outer[3][1]);
-    ctx.lineTo(inner[3][0],inner[3][1]);ctx.lineTo(inner[2][0],inner[2][1]);ctx.closePath();
-    ctx.fillStyle=shadeHex(colLo,bright*0.60);ctx.fill();
-    // Main face
+    // Dark border
+    ctx.beginPath();ctx.moveTo(outer[0][0],outer[0][1]);
+    outer.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));ctx.closePath();
+    ctx.fillStyle=shadeHex(colLo,bright*0.45);ctx.fill();
+    // Main face flat
     ctx.beginPath();ctx.moveTo(inner[0][0],inner[0][1]);
     inner.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));ctx.closePath();
-    const grd=ctx.createLinearGradient(inner[0][0],inner[0][1],inner[2][0],inner[2][1]);
-    grd.addColorStop(0,shadeHex(col,bright));
-    grd.addColorStop(1,shadeHex(colLo,bright*1.4));
-    ctx.fillStyle=grd;ctx.fill();
+    ctx.fillStyle=shadeHex(col,bright);ctx.fill();
     ctx.restore();
     return;
   }
 
   u+=dxOff; v+=dyOff;
-  const bv=h*0.22; // bevel width
+  const bv=h*0.13; // inset border width
+  const gx=h*0.35; // glint half-width
+  const gy=h*0.22; // glint half-height
 
   // Outer corners: TL TR BR BL
   const outer=[
@@ -107,7 +92,7 @@ function drawGem(fi,r,c,bright){
     faceUVto3D(f,u-h,v-h),
   ].map(p=>project(m3.app(rot,p)));
 
-  // Inner corners (inset by bevel)
+  // Inner face (inset)
   const inner=[
     faceUVto3D(f,u-h+bv,v+h-bv),
     faceUVto3D(f,u+h-bv,v+h-bv),
@@ -115,51 +100,32 @@ function drawGem(fi,r,c,bright){
     faceUVto3D(f,u-h+bv,v-h+bv),
   ].map(p=>project(m3.app(rot,p)));
 
+  // Glint: small oval in top-left of face (fixed in face UV space = follows face orientation)
+  const gc=project(m3.app(rot,faceUVto3D(f,u-h*0.35,v+h*0.35)));
+  const gr=project(m3.app(rot,faceUVto3D(f,u-h*0.35+gx,v+h*0.35)));
+  const gb=project(m3.app(rot,faceUVto3D(f,u-h*0.35,v+h*0.35-gy)));
+
   const isSel=sel&&sel.fi===fi&&sel.r===r&&sel.c===c;
   const col=COLORS[gem.color];
+  const colLo=COLORS_LO[gem.color];
 
   ctx.save();
   ctx.globalAlpha=gem.alpha??1;
 
-  const colLo=COLORS_LO[gem.color];
-
-  // Top bevel — highlight
+  // Dark border (outer quad)
   ctx.beginPath();
-  ctx.moveTo(outer[0][0],outer[0][1]);ctx.lineTo(outer[1][0],outer[1][1]);
-  ctx.lineTo(inner[1][0],inner[1][1]);ctx.lineTo(inner[0][0],inner[0][1]);
+  ctx.moveTo(outer[0][0],outer[0][1]);
+  outer.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));
   ctx.closePath();
-  ctx.fillStyle=shadeHex(col,bright*1.35);ctx.fill();
+  ctx.fillStyle=shadeHex(colLo,bright*0.45);ctx.fill();
 
-  // Left bevel — highlight
-  ctx.beginPath();
-  ctx.moveTo(outer[3][0],outer[3][1]);ctx.lineTo(outer[0][0],outer[0][1]);
-  ctx.lineTo(inner[0][0],inner[0][1]);ctx.lineTo(inner[3][0],inner[3][1]);
-  ctx.closePath();
-  ctx.fillStyle=shadeHex(col,bright*1.20);ctx.fill();
-
-  // Right bevel — shadow
-  ctx.beginPath();
-  ctx.moveTo(outer[1][0],outer[1][1]);ctx.lineTo(outer[2][0],outer[2][1]);
-  ctx.lineTo(inner[2][0],inner[2][1]);ctx.lineTo(inner[1][0],inner[1][1]);
-  ctx.closePath();
-  ctx.fillStyle=shadeHex(colLo,bright*0.72);ctx.fill();
-
-  // Bottom bevel — shadow
-  ctx.beginPath();
-  ctx.moveTo(outer[2][0],outer[2][1]);ctx.lineTo(outer[3][0],outer[3][1]);
-  ctx.lineTo(inner[3][0],inner[3][1]);ctx.lineTo(inner[2][0],inner[2][1]);
-  ctx.closePath();
-  ctx.fillStyle=shadeHex(colLo,bright*0.60);ctx.fill();
-
-  // Main face with gradient
+  // Main face (inset, flat color)
   ctx.beginPath();
   ctx.moveTo(inner[0][0],inner[0][1]);
   inner.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));
   ctx.closePath();
-  const grd=ctx.createLinearGradient(inner[0][0],inner[0][1],inner[2][0],inner[2][1]);
-  grd.addColorStop(0,shadeHex(col,bright));
-  grd.addColorStop(1,shadeHex(colLo,bright*1.4));
-  ctx.fillStyle=grd;ctx.fill();
+  ctx.fillStyle=shadeHex(col,bright);ctx.fill();
+
 
 
 

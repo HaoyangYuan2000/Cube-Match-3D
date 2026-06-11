@@ -60,7 +60,7 @@ async function markTutorialDone() {
 async function checkNickname(name, pin) {
   if (!_db) return 'available';
   try {
-    const doc = await _db.collection('nicknames').doc(name.toLowerCase()).get();
+    const doc = await _db.collection('nicknames').doc(name).get();
     if (!doc.exists) return 'available';
     const data = doc.data();
     if (data.deviceId === _deviceId) return 'yours';
@@ -72,7 +72,7 @@ async function checkNickname(name, pin) {
 async function claimNickname(name, pin) {
   if (!_db || !_deviceId) return;
   try {
-    await _db.collection('nicknames').doc(name.toLowerCase()).set({ deviceId: _deviceId, pin });
+    await _db.collection('nicknames').doc(name).set({ deviceId: _deviceId, pin });
     await saveProgress('nickname', name);
   } catch (e) {}
 }
@@ -80,15 +80,20 @@ async function claimNickname(name, pin) {
 // ── Leaderboard ──
 
 async function submitScore(mode, score) {
-  if (!_db || !_deviceId) return;
+  if (!_db) return;
+  const nickname = localStorage.getItem('cb3d_nickname');
+  if (!nickname) return;
   const col = mode === 'classic' ? 'leaderboard_classic' : 'leaderboard_timed';
-  const nickname = localStorage.getItem('cb3d_nickname') || 'Anonymous';
+  const key = nickname;
   try {
-    await _db.collection(col).doc(_deviceId).set({
+    const ref = _db.collection(col).doc(key);
+    const doc = await ref.get();
+    if (doc.exists && (doc.data().score || 0) >= score) return;
+    await ref.set({
       name: nickname,
       score,
       ts: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: false });
+    });
   } catch (e) {}
 }
 
