@@ -444,7 +444,7 @@ function processMatches(matches,chain){
     const total=allMatches.length;
     allMatches.forEach(([fi,r,c],idx)=>{
       // pitch climbs across all eliminated blocks in one sweep
-      const noteIdx=chainOffset+Math.round(idx/(total-1||1)*Math.min(total-1,4));
+      const noteIdx=chainOffset+Math.round(idx/(total-1||1)*Math.min(total-1,5));
       spawnParticles(fi,r,c,noteIdx);
     });
 
