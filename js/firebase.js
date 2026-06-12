@@ -198,9 +198,21 @@ async function claimNickname(name) {
     const playerDoc = await _db.collection('players').doc(_uid).get();
     const oldNick = playerDoc.exists && playerDoc.data().nickname;
     const ops = [_db.collection('nicknames').doc(name).set({ uid: _uid })];
-    if (oldNick && oldNick !== name) ops.push(_db.collection('nicknames').doc(oldNick).delete());
+    if (oldNick && oldNick !== name) {
+      ops.push(_db.collection('nicknames').doc(oldNick).delete());
+      // Migrate leaderboard records from old nickname to new nickname
+      for (const col of ['leaderboard_classic', 'leaderboard_timed']) {
+        const oldDoc = await _db.collection(col).doc(oldNick).get();
+        if (oldDoc.exists) {
+          ops.push(_db.collection(col).doc(name).set({ ...oldDoc.data(), name }));
+          ops.push(_db.collection(col).doc(oldNick).delete());
+        }
+      }
+    }
     await Promise.all(ops);
     await saveProgress('nickname', name);
+    delete _lbCache['classic'];
+    delete _lbCache['timed'];
   } catch (e) {}
 }
 

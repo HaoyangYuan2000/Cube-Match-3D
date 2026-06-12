@@ -1043,6 +1043,7 @@ async function endClassicGame(){
   await submitScore('classic',finalScore);
   document.getElementById('classicScore').textContent=finalScore.toLocaleString();
   document.getElementById('classicBest').textContent=best.toLocaleString();
+  document.getElementById('be').textContent=best.toLocaleString();
   document.getElementById('classicLb').innerHTML='<div class="lb-loading">Loading...</div>';
   setTimeout(()=>{document.getElementById('classicOv').classList.remove('hidden');flushCityToasts();},400);
   const rows=await fetchLeaderboard('classic');
@@ -1131,6 +1132,7 @@ async function endTimedGame(){
   await submitScore('timed',finalScore);
   document.getElementById('taScore').textContent=finalScore.toLocaleString();
   document.getElementById('taBest').textContent=best.toLocaleString();
+  document.getElementById('be').textContent=best.toLocaleString();
   document.getElementById('taLb').innerHTML='<div class="lb-loading">Loading...</div>';
   setTimeout(()=>{document.getElementById('taOv').classList.remove('hidden');flushCityToasts();},400);
   const rows=await fetchLeaderboard('timed');
