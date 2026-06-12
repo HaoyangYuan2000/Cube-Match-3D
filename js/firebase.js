@@ -57,6 +57,10 @@ async function _updateNicknameOwnership(newUid) {
   const nickname = localStorage.getItem('cb3d_nickname');
   if (!nickname) return;
   try {
+    // Only transfer if the Google account doesn't already own a different nickname
+    const newPlayerDoc = await _db.collection('players').doc(newUid).get();
+    const existingNick = newPlayerDoc.exists && newPlayerDoc.data().nickname;
+    if (existingNick && existingNick !== nickname) return;
     await _db.collection('nicknames').doc(nickname).set({ uid: newUid }, { merge: true });
   } catch (e) {}
 }
@@ -191,7 +195,11 @@ async function checkNickname(name) {
 async function claimNickname(name) {
   if (!_db || !_uid) return;
   try {
-    await _db.collection('nicknames').doc(name).set({ uid: _uid });
+    const playerDoc = await _db.collection('players').doc(_uid).get();
+    const oldNick = playerDoc.exists && playerDoc.data().nickname;
+    const ops = [_db.collection('nicknames').doc(name).set({ uid: _uid })];
+    if (oldNick && oldNick !== name) ops.push(_db.collection('nicknames').doc(oldNick).delete());
+    await Promise.all(ops);
     await saveProgress('nickname', name);
   } catch (e) {}
 }
@@ -275,16 +283,24 @@ async function searchPlayer(nickname) {
 }
 
 async function sendFriendRequest(toUid, toNickname) {
-  if (!_db || !_uid) return;
+  if (!_db || !_uid) return 'sent';
   const myNick = localStorage.getItem('cb3d_nickname') || '?';
-  const docId = toUid + '_' + _uid;
+  const reverseDocId = _uid + '_' + toUid;
   try {
+    const reverseDoc = await _db.collection('friendRequests').doc(reverseDocId).get();
+    if (reverseDoc.exists) {
+      // They already sent us a request — auto-accept both sides
+      await acceptFriendRequest(toUid, reverseDocId);
+      return 'accepted';
+    }
+    const docId = toUid + '_' + _uid;
     await _db.collection('friendRequests').doc(docId).set({
       from: _uid, fromNickname: myNick,
       toUid, toNickname,
       ts: firebase.firestore.FieldValue.serverTimestamp()
     });
-  } catch (e) {}
+    return 'sent';
+  } catch (e) { return 'sent'; }
 }
 
 async function loadFriendRequests() {
@@ -303,7 +319,8 @@ async function acceptFriendRequest(fromUid, docId) {
     await Promise.all([
       _db.collection('players').doc(_uid).set({ friends: FV.arrayUnion(fromUid) }, { merge: true }),
       _db.collection('players').doc(fromUid).set({ friends: FV.arrayUnion(_uid) }, { merge: true }),
-      _db.collection('friendRequests').doc(docId).delete()
+      _db.collection('friendRequests').doc(docId).delete(),
+      _db.collection('friendRequests').doc(_uid + '_' + fromUid).delete()
     ]);
   } catch (e) {}
 }
@@ -370,6 +387,7 @@ async function claimFriendBlockRewards() {
       const current = f.blocksElim || 0;
       const last = rewardLog[f.uid] || 0;
       const newElim = current - last;
+      if (newElim < 0) { newLog[f.uid] = current; continue; }
       if (newElim >= 100) {
         const reward = Math.floor(newElim / 100);
         totalReward += reward;
@@ -398,6 +416,12 @@ async function checkAlreadyFriends(targetUid) {
     const friends = (doc.exists && doc.data().friends) || [];
     return friends.includes(targetUid);
   } catch (e) { return false; }
+}
+
+async function signOutUser() {
+  if (!_auth) return;
+  try { await _auth.signOut(); } catch (e) {}
+  _uid = null;
 }
 
 async function saveAllProgress() {

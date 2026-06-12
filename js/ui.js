@@ -46,21 +46,40 @@ function _shouldShowBindPrompt(){
 
 function onAccountBtn(){
   if(!isAnonymousUser()){
-    // Already linked — show linked state in bindOv
-    document.getElementById('bindOv').classList.remove('hidden');
     document.getElementById('bindOvTitle').textContent='Account Linked ✓';
     document.getElementById('bindOvDesc').textContent='Your progress is saved to your Google account.';
     document.getElementById('bindGoogleBtn').style.display='none';
     document.getElementById('bindError').style.display='none';
+    document.getElementById('changeNameBtn').style.display='';
+    document.getElementById('signOutBtn').style.display='';
+    document.getElementById('bindOv').classList.remove('hidden');
   } else {
-    // Anonymous — show bind prompt
     document.getElementById('bindOvTitle').textContent='Save Your Progress';
     document.getElementById('bindOvDesc').textContent='Link your Google account to sync progress across devices and never lose your score.';
     document.getElementById('bindGoogleBtn').style.display='';
     document.getElementById('bindGoogleBtn').disabled=false;
     document.getElementById('bindError').style.display='none';
+    document.getElementById('changeNameBtn').style.display='none';
+    document.getElementById('signOutBtn').style.display='none';
     document.getElementById('bindOv').classList.remove('hidden');
   }
+}
+
+function openNickOverlay(){
+  document.getElementById('nickInput').value=getNickname()||'';
+  document.getElementById('nickError').style.display='none';
+  const btn=document.getElementById('nickConfirmBtn');
+  btn.disabled=false;btn.textContent='Confirm';
+  document.getElementById('nickOv').classList.remove('hidden');
+}
+
+async function doSignOut(){
+  await signOutUser();
+  hideBindPrompt();
+  // Reset to anonymous state in UI
+  localStorage.removeItem('cb3d_nickname');
+  showToast('Signed out.');
+  setTimeout(()=>location.reload(),800);
 }
 
 function showBindPrompt(){
@@ -70,6 +89,8 @@ function showBindPrompt(){
   document.getElementById('bindGoogleBtn').style.display='';
   document.getElementById('bindGoogleBtn').disabled=false;
   document.getElementById('bindError').style.display='none';
+  document.getElementById('changeNameBtn').style.display='none';
+  document.getElementById('signOutBtn').style.display='none';
   document.getElementById('bindOv').classList.remove('hidden');
 }
 
@@ -85,19 +106,17 @@ async function doGoogleLink(){
   await initFirebase();
   const result=await linkWithGoogle();
   if(result.success){
-    if(result.displayName&&!getNickname()){
-      const safe=result.displayName.replace(/[^a-zA-Z0-9_\- ]/g,'').slice(0,16);
-      if(safe.length>=2){
-        localStorage.setItem('cb3d_nickname',safe);
-        await claimNickname(safe);
-      }
-    }
     hideBindPrompt();
     showToast('✅ Account linked! Progress saved.');
-    // Reload progress from Firestore (Google account may have existing data) and refresh city
+    // Reload progress from Firestore — nickname from Firestore takes highest priority
     const progress=await loadProgress();
+    // If Firestore has no nickname, fall back to Google displayName as initial suggestion
+    if(!progress?.nickname&&result.displayName){
+      const safe=result.displayName.replace(/[^a-zA-Z0-9_\- ]/g,'').slice(0,16);
+      if(safe.length>=2&&!getNickname()){localStorage.setItem('cb3d_nickname',safe);await claimNickname(safe);}
+    }
     if(progress){
-      if(progress.nickname&&!getNickname())localStorage.setItem('cb3d_nickname',progress.nickname);
+      if(progress.nickname)localStorage.setItem('cb3d_nickname',progress.nickname);
       if(progress.stars)Object.entries(progress.stars).forEach(([i,s])=>localStorage.setItem('cb3d_s'+i,s));
       if(progress.bestLeft)Object.entries(progress.bestLeft).forEach(([i,v])=>localStorage.setItem('cb3d_bl'+i,v));
       if(progress.blocksElim>totalBlocksElim){
@@ -123,6 +142,10 @@ async function doGoogleLink(){
     }
     updateSliceBtn();
     updateCity();
+    getFriendRequestCount().then(n=>{
+      const badge=document.getElementById('friendReqBadge');
+      if(badge){badge.textContent=n;badge.style.display=n>0?'':'none';}
+    });
   } else if(result.error==='cancelled'){
     btn.disabled=false;
   } else {
@@ -885,8 +908,9 @@ async function doFriendSearch(){
 }
 
 async function doSendRequest(uid,nickname,btn){
-  btn.disabled=true;btn.textContent='Sent!';
-  await sendFriendRequest(uid,nickname);
+  btn.disabled=true;btn.textContent='...';
+  const result=await sendFriendRequest(uid,nickname);
+  btn.textContent=result==='accepted'?'Friends!':'Sent!';
 }
 
 async function _loadFriendRequests(){

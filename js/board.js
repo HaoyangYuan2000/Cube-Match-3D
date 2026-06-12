@@ -15,6 +15,17 @@ function safeColor(fi,r,c){
   if(l1!==undefined&&l1===l2)forbidden.add(l1);
   if(r1!==undefined&&r1===r2)forbidden.add(r1);
   if(l1!==undefined&&l1===r1)forbidden.add(l1);
+  // cross-seam neighbors
+  for(const seam of CROSS_SEAMS){
+    const idx=seam.findIndex(s=>s.fi===fi&&s.r===r&&s.c===c);
+    if(idx===-1)continue;
+    const getC=i=>{const s=seam[i];return s?gems[s.fi]?.[s.r]?.[s.c]?.color:undefined;};
+    const p1=getC(idx-1),p2=getC(idx-2);
+    const n1=getC(idx+1),n2=getC(idx+2);
+    if(p1!==undefined&&p1===p2)forbidden.add(p1);
+    if(n1!==undefined&&n1===n2)forbidden.add(n1);
+    if(p1!==undefined&&p1===n1)forbidden.add(p1);
+  }
   let t,tries=0;
   do{t=Math.floor(Math.random()*nC());tries++;}while(forbidden.has(t)&&tries<20);
   return t;

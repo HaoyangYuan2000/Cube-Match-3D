@@ -33,9 +33,11 @@
         </div>
       </div>
     </div>
-    <span id="modeLabel" style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-left:auto"></span>
-    <div class="moves-pill" id="me">20</div>
-    <div class="timer-pill" id="timerPill" style="display:none">2:00</div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
+      <span id="modeLabel" style="font-size:13px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted)"></span>
+      <div class="moves-pill" id="me">20</div>
+      <div class="timer-pill" id="timerPill" style="display:none">2:00</div>
+    </div>
   </div>
   <div class="canvas-wrap" id="cw">
     <canvas id="c"></canvas>
@@ -124,7 +126,7 @@
       <div class="city-wrap">
         <div class="city-header">
           <span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Your City</span>
-          <span style="font-size:11px;color:var(--accent)">🧱 <span id="cityMats">0</span></span>
+          <span style="font-size:11px;color:var(--accent);display:flex;align-items:center;gap:3px"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="6.5,1 12,4.5 12,9.5 6.5,13 1,9.5 1,4.5" fill="#3a5fc8" stroke="#5b7fe8" stroke-width="0.5"/><polygon points="6.5,1 12,4.5 6.5,8 1,4.5" fill="#5b7fe8"/><polygon points="6.5,8 12,4.5 12,9.5 6.5,13" fill="#2a4aaa"/><polygon points="6.5,8 1,4.5 1,9.5 6.5,13" fill="#4060c0"/></svg><span id="cityMats">0</span></span>
         </div>
         <svg id="citySvg" viewBox="0 0 240 80" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">
           <!-- Sky gradient -->
@@ -594,7 +596,7 @@
       </div>
 
       <div style="font-size:11px;color:var(--muted);letter-spacing:0.5px;text-align:center;line-height:1.6">
-        🧱 Eliminate blocks · Build your city
+        Eliminate blocks · Build your city
       </div>
 
       <!-- Top-right icon buttons -->
@@ -624,7 +626,7 @@
         </div>
         <label class="toggle"><input type="checkbox" id="settingVibration" onchange="onSettingVibration(this.checked)"><span class="toggle-slider"></span></label>
       </div>
-      <button class="btn btn-s" style="margin-top:4px;font-size:14px;padding:10px 32px" onclick="hideSettings()">← Back</button>
+      <button class="back-btn" onclick="hideSettings()" style="position:absolute;top:12px;left:12px;font-size:15px;padding:7px 18px">← Back</button>
     </div>
     <!-- Leaderboard Overlay -->
     <div class="overlay hidden" id="lbOv" style="gap:14px;padding:24px 20px">
@@ -635,7 +637,7 @@
         <button class="lb-tab" id="lbTabFriends" onclick="switchLbTab('friends')">👥 Friends</button>
       </div>
       <div class="lb-box" id="lbMain" style="max-height:240px"></div>
-      <button class="btn btn-s" style="font-size:12px;padding:8px 20px" onclick="hideLeaderboard()">← Back</button>
+      <button class="back-btn" onclick="hideLeaderboard()" style="position:absolute;top:12px;left:12px;font-size:15px;padding:7px 18px">← Back</button>
     </div>
 
     <!-- Friends Overlay -->
@@ -682,7 +684,7 @@
       </div>
     </div>
     <!-- Nickname Setup -->
-    <div class="overlay hidden" id="nickOv">
+    <div class="overlay hidden" id="nickOv" style="z-index:60">
       <button class="back-btn" onclick="hideAll();showSplash()" style="position:absolute;top:12px;left:12px;font-size:15px;padding:7px 18px">← Back</button>
       <div style="font-size:36px">👤</div>
       <div class="ov-title">Choose a Name</div>
@@ -695,6 +697,7 @@
     </div>
     <!-- Google Account Binding -->
     <div class="overlay hidden" id="bindOv" style="z-index:55">
+      <button class="back-btn" onclick="hideBindPrompt()" style="position:absolute;top:12px;left:12px;font-size:15px;padding:7px 18px">← Back</button>
       <div style="font-size:40px">☁️</div>
       <div class="ov-title" id="bindOvTitle" style="font-size:22px">Save Your Progress</div>
       <div id="bindOvDesc" style="font-size:13px;color:var(--muted);text-align:center;max-width:240px;line-height:1.6;margin-bottom:4px">
@@ -706,7 +709,8 @@
         <span style="margin-top:2px">Continue with Google</span>
       </button>
       <div id="bindError" style="display:none;font-size:12px;color:#ff5fa0;margin-top:4px;text-align:center"></div>
-      <button class="btn btn-s" onclick="hideBindPrompt()" style="font-size:12px;padding:8px 20px;margin-top:4px">Maybe later</button>
+      <button id="changeNameBtn" class="btn btn-s" onclick="hideBindPrompt();openNickOverlay()" style="display:none;font-size:14px;padding:10px 32px;margin-top:8px">✏️ Change Name</button>
+      <button id="signOutBtn" class="btn btn-s" onclick="doSignOut()" style="display:none;font-size:14px;padding:10px 32px;margin-top:6px;color:#ff5fa0;border-color:rgba(255,95,160,.35)">Sign Out</button>
     </div>
     <!-- Classic Result -->
     <div class="overlay hidden" id="classicOv">
