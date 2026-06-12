@@ -21,6 +21,11 @@ async function showLeaderboard() {
   document.getElementById('sliceBtn').style.display = 'none';
   document.getElementById('backBtn').style.display = 'none';
   document.getElementById('lbOv').classList.remove('hidden');
+  // 每次打开重置 tab 到 classic
+  _lbTab = 'classic';
+  document.getElementById('lbTabClassic').classList.add('active');
+  document.getElementById('lbTabTimed').classList.remove('active');
+  document.getElementById('lbTabFriends').classList.remove('active');
   await initFirebase();
   await loadLbTab('classic');
 }

@@ -233,6 +233,7 @@ async function submitScore(mode, score) {
     await ref.set({
       name: nickname,
       score,
+      uid: _uid,
       ts: firebase.firestore.FieldValue.serverTimestamp()
     });
     delete _lbCache[mode]; // invalidate cache so next open shows fresh data
@@ -265,31 +266,34 @@ async function fetchLeaderboard(mode) {
 async function fetchSuggestedPlayers(count) {
   if (!_db || !_uid) return [];
   try {
-    const [myDoc, classicSnap, timedSnap] = await Promise.all([
-      _db.collection('players').doc(_uid).get(),
+    const [friendUids, classicSnap, timedSnap] = await Promise.all([
+      _fetchFriendUids(),
       _db.collection('leaderboard_classic').orderBy('score', 'desc').limit(50).get(),
       _db.collection('leaderboard_timed').orderBy('score', 'desc').limit(50).get(),
     ]);
-    const friends = (myDoc.exists && myDoc.data().friends) || [];
-    const excluded = new Set([...friends, _uid]);
-    const seen = new Set();
-    const pool = [];
-    for (const snap of [classicSnap, timedSnap]) {
-      for (const d of snap.docs) {
-        const { uid, name, score } = d.data();
-        if (!uid || !name || excluded.has(uid) || seen.has(uid)) continue;
-        seen.add(uid);
-        pool.push({ uid, nickname: name, score: score || 0 });
-      }
+    const excluded = new Set([...friendUids, _uid]);
+    const byUid = {};
+    for (const d of classicSnap.docs) {
+      const { uid, name, score } = d.data();
+      if (!uid || !name || excluded.has(uid)) continue;
+      byUid[uid] = { uid, nickname: name, classicBest: score || 0, taBest: 0 };
     }
-    pool.sort((a, b) => b.score - a.score);
+    for (const d of timedSnap.docs) {
+      const { uid, name, score } = d.data();
+      if (!uid || !name || excluded.has(uid)) continue;
+      if (byUid[uid]) { byUid[uid].taBest = score || 0; }
+      else byUid[uid] = { uid, nickname: name, classicBest: 0, taBest: score || 0 };
+    }
+    const pool = Object.values(byUid)
+      .sort((a, b) => (b.classicBest + b.taBest) - (a.classicBest + a.taBest))
+      .slice(0, 30);
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
     return pool.slice(0, count).map(p => ({
       uid: p.uid, nickname: p.nickname,
-      classicBest: p.classicBest || 0, taBest: p.taBest || 0
+      classicBest: p.classicBest, taBest: p.taBest
     }));
   } catch (e) { return []; }
 }
@@ -336,13 +340,16 @@ async function loadFriendRequests() {
   } catch (e) { return []; }
 }
 
+function _friendshipId(a, b) {
+  return a < b ? a + '_' + b : b + '_' + a;
+}
+
 async function acceptFriendRequest(fromUid, docId) {
   if (!_db || !_uid) return;
-  const FV = firebase.firestore.FieldValue;
+  const fsId = _friendshipId(_uid, fromUid);
   try {
     await Promise.all([
-      _db.collection('players').doc(_uid).set({ friends: FV.arrayUnion(fromUid) }, { merge: true }),
-      _db.collection('players').doc(fromUid).set({ friends: FV.arrayUnion(_uid) }, { merge: true }),
+      _db.collection('friendships').doc(fsId).set({ uid1: _uid, uid2: fromUid }),
       _db.collection('friendRequests').doc(docId).delete(),
       _db.collection('friendRequests').doc(_uid + '_' + fromUid).delete()
     ]);
@@ -356,23 +363,33 @@ async function rejectFriendRequest(docId) {
 
 async function removeFriend(friendUid) {
   if (!_db || !_uid) return;
-  const FV = firebase.firestore.FieldValue;
   try {
-    await Promise.all([
-      _db.collection('players').doc(_uid).set({ friends: FV.arrayRemove(friendUid) }, { merge: true }),
-      _db.collection('players').doc(friendUid).set({ friends: FV.arrayRemove(_uid) }, { merge: true })
-    ]);
+    await _db.collection('friendships').doc(_friendshipId(_uid, friendUid)).delete();
   } catch (e) {}
+}
+
+async function _fetchFriendUids() {
+  if (!_db || !_uid) return [];
+  const [snap1, snap2] = await Promise.all([
+    _db.collection('friendships').where('uid1', '==', _uid).get(),
+    _db.collection('friendships').where('uid2', '==', _uid).get()
+  ]);
+  return [...snap1.docs, ...snap2.docs].map(d => {
+    const { uid1, uid2 } = d.data();
+    return uid1 === _uid ? uid2 : uid1;
+  });
 }
 
 async function fetchFriendsLeaderboard(mode) {
   if (!_db || !_uid) return [];
   try {
-    const myDoc = await _db.collection('players').doc(_uid).get();
-    const friends = (myDoc.exists && myDoc.data().friends) || [];
-    if (!friends.length) return [];
+    const [friendUids, myDoc] = await Promise.all([
+      _fetchFriendUids(),
+      _db.collection('players').doc(_uid).get()
+    ]);
+    if (!friendUids.length) return [];
     const chunks = [];
-    for (let i = 0; i < friends.length; i += 10) chunks.push(friends.slice(i, i + 10));
+    for (let i = 0; i < friendUids.length; i += 10) chunks.push(friendUids.slice(i, i + 10));
     const snaps = await Promise.all(chunks.map(chunk =>
       _db.collection('players').where(firebase.firestore.FieldPath.documentId(), 'in', chunk).get()
     ));
@@ -392,21 +409,22 @@ async function fetchFriendsLeaderboard(mode) {
 async function claimFriendBlockRewards() {
   if (!_db || !_uid) return 0;
   try {
-    const myDoc = await _db.collection('players').doc(_uid).get();
-    if (!myDoc.exists) return 0;
+    const [myDoc, friendUids] = await Promise.all([
+      _db.collection('players').doc(_uid).get(),
+      _fetchFriendUids()
+    ]);
+    if (!myDoc.exists || !friendUids.length) return 0;
     const data = myDoc.data();
-    const friends = data.friends || [];
-    if (!friends.length) return 0;
     const rewardLog = data.friendRewardLog || {};
     let totalReward = 0;
     const newLog = { ...rewardLog };
     const chunks = [];
-    for (let i = 0; i < friends.length; i += 10) chunks.push(friends.slice(i, i + 10));
+    for (let i = 0; i < friendUids.length; i += 10) chunks.push(friendUids.slice(i, i + 10));
     const friendDocs = [];
-    for (const chunk of chunks) {
-      const snap = await _db.collection('players').where(firebase.firestore.FieldPath.documentId(), 'in', chunk).get();
-      snap.docs.forEach(d => friendDocs.push({ uid: d.id, ...d.data() }));
-    }
+    const snaps = await Promise.all(chunks.map(chunk =>
+      _db.collection('players').where(firebase.firestore.FieldPath.documentId(), 'in', chunk).get()
+    ));
+    snaps.forEach(snap => snap.docs.forEach(d => friendDocs.push({ uid: d.id, ...d.data() })));
     for (const f of friendDocs) {
       const current = f.blocksElim || 0;
       const last = rewardLog[f.uid] || 0;
@@ -444,9 +462,8 @@ async function getFriendRequestCount() {
 async function checkAlreadyFriends(targetUid) {
   if (!_db || !_uid) return false;
   try {
-    const doc = await _db.collection('players').doc(_uid).get();
-    const friends = (doc.exists && doc.data().friends) || [];
-    return friends.includes(targetUid);
+    const doc = await _db.collection('friendships').doc(_friendshipId(_uid, targetUid)).get();
+    return doc.exists;
   } catch (e) { return false; }
 }
 

@@ -21,6 +21,7 @@ function updateSliceBtn() {
 }
 
 function confirmExitGame() {
+  if (!gameRunning) { showModeSelect(); return; }
   document.getElementById('exitConfirmOv').style.display = 'flex';
 }
 function hideExitConfirm() {

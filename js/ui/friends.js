@@ -1,5 +1,12 @@
 'use strict';
 
+let _suggestionsCache = null;
+
+async function prefetchSuggestions() {
+  if (isAnonymousUser()) return;
+  _suggestionsCache = await fetchSuggestedPlayers(3);
+}
+
 async function _openFriends() {
   document.getElementById('friendSearchInput').value = '';
   document.getElementById('friendSearchResult').innerHTML = '';
@@ -51,7 +58,7 @@ function hideFriends() {
 async function _loadSuggestedPlayers() {
   const el = document.getElementById('friendSearchResult');
   el.innerHTML = '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.8px">Suggested Players</div>';
-  const suggestions = await fetchSuggestedPlayers(3);
+  const suggestions = _suggestionsCache !== null ? _suggestionsCache : await fetchSuggestedPlayers(3);
   if (!suggestions.length) { el.innerHTML = ''; return; }
   el.innerHTML += suggestions.map(p => `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,.05);border-radius:12px;border:1px solid rgba(124,111,255,.2);margin-bottom:6px">

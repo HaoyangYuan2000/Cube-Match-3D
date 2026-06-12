@@ -7,6 +7,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.os.VibratorManager;
 import android.webkit.JavascriptInterface;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -41,12 +42,21 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void vibrate(String patternJson) {
             try {
-                Vibrator v = (Vibrator) ctx.getSystemService(Context.VIBRATOR_SERVICE);
-                if (v == null || !v.hasVibrator()) return;
                 patternJson = patternJson.replaceAll("[\\[\\]\\s]", "");
                 String[] parts = patternJson.split(",");
                 long[] pattern = new long[parts.length];
                 for (int i = 0; i < parts.length; i++) pattern[i] = Long.parseLong(parts[i].trim());
+
+                Vibrator v;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    VibratorManager vm = (VibratorManager) ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE);
+                    if (vm == null) return;
+                    v = vm.getDefaultVibrator();
+                } else {
+                    v = (Vibrator) ctx.getSystemService(Context.VIBRATOR_SERVICE);
+                }
+                if (v == null || !v.hasVibrator()) return;
+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     v.vibrate(VibrationEffect.createWaveform(pattern, -1));
                 } else {

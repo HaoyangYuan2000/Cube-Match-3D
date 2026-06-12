@@ -102,3 +102,4 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
 }));
 
 let _progressPromise = initFirebase().then(() => loadProgress());
+_progressPromise.then(() => prefetchSuggestions());
