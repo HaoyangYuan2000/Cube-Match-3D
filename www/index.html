@@ -25,8 +25,8 @@
     <div id="exitConfirmOv" style="display:none;position:absolute;inset:0;z-index:200;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center">
       <div style="background:#1a1630;border:1px solid rgba(124,111,255,.35);border-radius:18px;padding:28px 24px;width:260px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.6)">
         <div style="font-size:28px;margin-bottom:8px">🚪</div>
-        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">Exit Game?</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6">Your current progress<br>will be lost.</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px">Exit Game?</div>
+        <div style="font-size:15px;color:var(--muted);margin-bottom:20px;line-height:1.6">Your current progress<br>will be lost.</div>
         <div style="display:flex;gap:10px;justify-content:center">
           <button class="btn btn-s" style="flex:1;font-size:14px;padding:10px 0" onclick="hideExitConfirm()">Cancel</button>
           <button class="btn btn-p" style="flex:1;font-size:14px;padding:10px 0" onclick="doExitGame()">Exit</button>
@@ -66,8 +66,8 @@
             <div class="tut-finger" id="tutFinger1"></div>
           </div>
           <div style="text-align:center">
-            <div style="font-size:13px;font-weight:700;color:var(--text)">Tap to Swap</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5">Tap a gem,<br>then tap an adjacent one</div>
+            <div style="font-size:15px;font-weight:700;color:var(--text)">Tap to Swap</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:3px;line-height:1.5">Tap a gem,<br>then tap an adjacent one</div>
           </div>
         </div>
 
@@ -80,8 +80,8 @@
             <div class="tut-finger" id="tutFinger2b"></div>
           </div>
           <div style="text-align:center">
-            <div style="font-size:13px;font-weight:700;color:var(--text)">Drag to Rotate</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5">One finger drags,<br>two fingers twist</div>
+            <div style="font-size:15px;font-weight:700;color:var(--text)">Drag to Rotate</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:3px;line-height:1.5">One finger drags,<br>two fingers twist</div>
           </div>
         </div>
 
@@ -91,8 +91,8 @@
       <div style="margin-top:16px;width:100%;max-width:320px;background:rgba(255,95,160,.07);border:1px solid rgba(255,95,160,.2);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:14px">
         <div style="font-size:28px;flex-shrink:0;width:36px;text-align:center">💥</div>
         <div>
-          <div style="font-size:13px;font-weight:700;color:var(--text)">Chain 4+ for power-ups</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.6">Match <b style="color:#ffd700">4</b> → 💣 Bomb clears 3×3 &nbsp;·&nbsp; Match <b style="color:#ffd700">5+</b> → 🚀 Rocket clears a full row</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text)">Chain 4+ for power-ups</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:3px;line-height:1.6">Match <b style="color:#ffd700">4</b> → 💣 Bomb clears 3×3 &nbsp;·&nbsp; Match <b style="color:#ffd700">5+</b> → 🚀 Rocket clears a full row</div>
         </div>
       </div>
 
@@ -100,8 +100,8 @@
       <div style="margin-top:8px;width:100%;max-width:320px;background:rgba(124,111,255,.08);border:1px solid rgba(124,111,255,.2);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:14px">
         <canvas id="tutGravityDemo" width="90" height="90" style="flex-shrink:0;border-radius:8px"></canvas>
         <div>
-          <div style="font-size:13px;font-weight:700;color:var(--text)">Rotate to change gravity</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.6">Tilt the cube — blocks always fall<br>toward the <b style="color:var(--accent)">bottom edge</b> of each face</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text)">Rotate to change gravity</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:3px;line-height:1.6">Rotate the cube — blocks always fall<br>toward the <b style="color:var(--accent)">bottom of your screen</b></div>
         </div>
       </div>
 
@@ -109,8 +109,8 @@
       <div style="margin-top:8px;width:100%;max-width:320px;background:rgba(0,200,255,.07);border:1px solid rgba(0,200,255,.22);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:14px">
         <canvas id="tutCrossDemo" width="90" height="90" style="flex-shrink:0;border-radius:8px"></canvas>
         <div>
-          <div style="font-size:13px;font-weight:700;color:var(--text)">Match across edges</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.6">Gems on <b style="color:#00ccff">adjacent faces</b> count as neighbours — matches can cross the fold!</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text)">Match across edges</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:3px;line-height:1.6">Gems on <b style="color:#00ccff">adjacent faces</b> count as neighbours — matches can cross the fold!</div>
         </div>
       </div>
 
