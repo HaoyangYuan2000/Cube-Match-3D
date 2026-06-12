@@ -20,7 +20,7 @@
     <div class="hb"><div class="hl" id="beLabel">Best Left</div><div class="hv gold" id="be">0</div></div>
   </div>
   <div class="info-strip" id="infoStrip" style="display:none">
-    <button class="back-btn" id="backBtn" onclick="showModeSelect()" style="display:none">← Menu</button>
+    <button class="back-btn" id="backBtn" onclick="showModeSelect()" style="display:none;font-size:15px;padding:7px 18px">← Back</button>
     <span id="modeLabel" style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-left:auto"></span>
     <div class="moves-pill" id="me">20</div>
     <div class="timer-pill" id="timerPill" style="display:none">2:00</div>
@@ -86,7 +86,7 @@
 
       <!-- Gravity tip -->
       <div style="margin-top:8px;width:100%;max-width:320px;background:rgba(124,111,255,.08);border:1px solid rgba(124,111,255,.2);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:14px">
-        <div style="font-size:28px;flex-shrink:0;width:36px;text-align:center">🌀</div>
+        <canvas id="tutGravityDemo" width="90" height="90" style="flex-shrink:0;border-radius:8px"></canvas>
         <div>
           <div style="font-size:13px;font-weight:700;color:var(--text)">Rotate to change gravity</div>
           <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.6">Tilt the cube — blocks always fall<br>toward the <b style="color:var(--accent)">bottom edge</b> of each face</div>
@@ -612,8 +612,8 @@
     </div>
     <!-- Mode Select -->
     <div class="overlay hidden" id="modeOv" style="gap:18px;padding:28px 20px">
-      <button class="back-btn" onclick="showSplash()" style="position:absolute;top:12px;left:12px">← Back</button>
-      <button onclick="showTutorial()" style="position:absolute;top:12px;right:12px;background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:8px;border:1px solid rgba(124,111,255,.2)">🎬 Tutorial</button>
+      <button class="back-btn" onclick="showSplash()" style="position:absolute;top:12px;left:12px;font-size:15px;padding:7px 18px">← Back</button>
+      <button onclick="showTutorial()" style="position:absolute;top:12px;right:12px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:9px 18px;border-radius:10px;border:1px solid rgba(124,111,255,.2)">🎬 Tutorial</button>
       <div class="ov-title" style="font-size:24px">Choose Mode</div>
       <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:300px">
         <button class="mode-card" onclick="selectMode('classic')">
@@ -636,7 +636,7 @@
     </div>
     <!-- Nickname Setup -->
     <div class="overlay hidden" id="nickOv">
-      <button class="back-btn" onclick="hideAll();showSplash()" style="position:absolute;top:12px;left:12px">← Back</button>
+      <button class="back-btn" onclick="hideAll();showSplash()" style="position:absolute;top:12px;left:12px;font-size:15px;padding:7px 18px">← Back</button>
       <div style="font-size:36px">👤</div>
       <div class="ov-title">Choose a Name</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Shown on the global leaderboard</div>
@@ -677,7 +677,6 @@
       </div>
       <div class="lb-box" id="classicLb"></div>
       <button class="btn btn-p" onclick="startClassicGame()">Play Again</button>
-      <button class="btn btn-s" onclick="showModeSelect()">← Modes</button>
     </div>
     <!-- Time Attack Result -->
     <div class="overlay hidden" id="taOv">
@@ -695,7 +694,6 @@
       </div>
       <div class="lb-box" id="taLb"></div>
       <button class="btn btn-p" onclick="startTimedGame()">Play Again</button>
-      <button class="btn btn-s" onclick="showModeSelect()">← Modes</button>
     </div>
   </div>
 </div>

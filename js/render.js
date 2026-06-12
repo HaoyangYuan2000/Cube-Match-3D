@@ -10,7 +10,7 @@ function resize(){
   canvas.style.width=w+'px'; canvas.style.height=h+'px';
   ctx.scale(dpr,dpr);
   cx=w/2; cy=h/2;
-  projScale=Math.min(w,h)*0.38;
+  projScale=Math.min(w,h)*0.35;
   draw();
 }
 window.addEventListener('resize',resize);

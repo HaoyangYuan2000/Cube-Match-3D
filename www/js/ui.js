@@ -220,14 +220,7 @@ function flushCityToasts(){
 }
 
 function showDailyToast(){
-  const wrap=document.getElementById('cw');
-  if(!wrap)return;
-  const el=document.createElement('div');
-  el.className='float-txt';
-  el.textContent='🎁 Daily bonus: +6 Slice!';
-  el.style.cssText='left:50%;top:40%;transform:translateX(-50%);font-size:14px;white-space:nowrap;z-index:60;color:#ffdd44';
-  wrap.appendChild(el);
-  setTimeout(()=>el.remove(),2000);
+  showToast('🎁 Daily bonus: +6 Slice!');
 }
 
 
@@ -689,11 +682,9 @@ function showSplash(){
 
 async function onPlay(){
   const btn=document.getElementById('playBtn');
-  btn.textContent='▶ \xa0Loading…';
   btn.disabled=true;
 
-  await initFirebase();
-  const progress=await loadProgress();
+  const progress=await _progressPromise;
   if(progress){
     // 恢复昵称（重装app后从云端恢复）
     if(progress.nickname&&!getNickname())localStorage.setItem('cb3d_nickname',progress.nickname);
@@ -955,4 +946,5 @@ requestAnimationFrame(()=>requestAnimationFrame(()=>{
   rot=m3.mul(m3.rotX(-0.38),m3.mul(m3.rotY(0.5),m3.id()));
   draw();
 }));
-initFirebase();
+// 页面加载时提前初始化，点击 Play 时直接 await 已完成的 Promise
+let _progressPromise = initFirebase().then(() => loadProgress());
