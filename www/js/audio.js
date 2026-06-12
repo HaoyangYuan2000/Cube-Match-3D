@@ -25,7 +25,10 @@ function _getMaster(ac) {
 // Pentatonic scale — start bright, chain combos climb higher
 const CHIME_NOTES = [523, 622, 784, 987, 1175, 1480, 1760, 2093, 2637, 3136];
 
+function _soundEnabled(){const v=localStorage.getItem('cb3d_sound');return v===null||v==='1';}
+
 function playShatter(x, y, canvasW, canvasH, idx) {
+  if(!_soundEnabled())return;
   try {
     const ac = getACtx();
     const master = _getMaster(ac);
@@ -80,6 +83,7 @@ function playShatter(x, y, canvasW, canvasH, idx) {
 }
 
 function playBoom(x, canvasW) {
+  if(!_soundEnabled())return;
   try {
     const ac = getACtx();
     const master = _getMaster(ac);
@@ -142,6 +146,7 @@ function playBoom(x, canvasW) {
 }
 
 function playRocket(x, canvasW) {
+  if(!_soundEnabled())return;
   try {
     const ac = getACtx();
     const master = _getMaster(ac);

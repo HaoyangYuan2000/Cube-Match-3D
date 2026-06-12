@@ -756,6 +756,36 @@ function hideLeaderboard(){
   document.getElementById('splashOv').classList.remove('hidden');
 }
 
+// ── Settings ──
+function _getSetting(key,def){const v=localStorage.getItem(key);return v===null?def:v==='1';}
+function showSettings(){
+  document.getElementById('splashOv').classList.add('hidden');
+  document.getElementById('settingSound').checked=_getSetting('cb3d_sound',true);
+  document.getElementById('settingVibration').checked=_getSetting('cb3d_vibration',true);
+  document.getElementById('settingsOv').classList.remove('hidden');
+}
+function hideSettings(){
+  document.getElementById('settingsOv').classList.add('hidden');
+  document.getElementById('splashOv').classList.remove('hidden');
+}
+function onSettingSound(v){
+  localStorage.setItem('cb3d_sound',v?'1':'0');
+}
+function onSettingVibration(v){
+  localStorage.setItem('cb3d_vibration',v?'1':'0');
+}
+function onResetProgress(){
+  if(!confirm('Reset all progress? This cannot be undone.'))return;
+  const keep=['cb3d_sound','cb3d_vibration','cb3d_tut','cb3d_did','cb3d_nickname'];
+  Object.keys(localStorage).filter(k=>k.startsWith('cb3d_')&&!keep.includes(k)).forEach(k=>localStorage.removeItem(k));
+  showToast('Progress reset.');
+}
+function vibrate(pattern){
+  if(!_getSetting('cb3d_vibration',true))return;
+  if(window.AndroidVibrate){window.AndroidVibrate.vibrate(JSON.stringify(pattern));}
+  else if(navigator.vibrate){navigator.vibrate(pattern);}
+}
+
 async function switchLbTab(tab){
   _lbTab=tab;
   document.getElementById('lbTabClassic').classList.toggle('active',tab==='classic');
@@ -768,6 +798,18 @@ async function loadLbTab(tab){
   el.innerHTML='<div class="lb-loading">Loading...</div>';
   const rows=await fetchLeaderboard(tab);
   renderLeaderboard('lbMain',rows,localStorage.getItem('cb3d_nickname'));
+}
+
+function confirmExitGame(){
+  const ov=document.getElementById('exitConfirmOv');
+  ov.style.display='flex';
+}
+function hideExitConfirm(){
+  document.getElementById('exitConfirmOv').style.display='none';
+}
+function doExitGame(){
+  hideExitConfirm();
+  showModeSelect();
 }
 
 function showModeSelect(){

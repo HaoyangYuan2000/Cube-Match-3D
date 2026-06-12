@@ -451,8 +451,8 @@ function processMatches(matches,chain){
     });
 
     // Power-up FX
-    if(hasBomb){spawnBombFX(bombCX,bombCY);playBoom(bombCX,canvas.width);}
-    if(hasRocket){spawnRocketFX(rocketCells);playRocket(avgSX,canvas.width);}
+    if(hasBomb){spawnBombFX(bombCX,bombCY);playBoom(bombCX,canvas.width);vibrate([30,20,60]);}
+    if(hasRocket){spawnRocketFX(rocketCells);playRocket(avgSX,canvas.width);vibrate([15,10,15,10,40]);}
 
     // City building materials
     totalBlocksElim+=allMatches.length;

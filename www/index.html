@@ -20,7 +20,19 @@
     <div class="hb"><div class="hl" id="beLabel">Best Left</div><div class="hv gold" id="be">0</div></div>
   </div>
   <div class="info-strip" id="infoStrip" style="display:none">
-    <button class="back-btn" id="backBtn" onclick="showModeSelect()" style="display:none;font-size:15px;padding:7px 18px">← Back</button>
+    <button class="back-btn" id="backBtn" onclick="confirmExitGame()" style="display:none;font-size:15px;padding:7px 18px">← Back</button>
+    <!-- Exit confirm dialog -->
+    <div id="exitConfirmOv" style="display:none;position:absolute;inset:0;z-index:200;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center">
+      <div style="background:#1a1630;border:1px solid rgba(124,111,255,.35);border-radius:18px;padding:28px 24px;width:260px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.6)">
+        <div style="font-size:28px;margin-bottom:8px">🚪</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">Exit Game?</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6">Your current progress<br>will be lost.</div>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button class="btn btn-s" style="flex:1;font-size:14px;padding:10px 0" onclick="hideExitConfirm()">Cancel</button>
+          <button class="btn btn-p" style="flex:1;font-size:14px;padding:10px 0" onclick="doExitGame()">Exit</button>
+        </div>
+      </div>
+    </div>
     <span id="modeLabel" style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-left:auto"></span>
     <div class="moves-pill" id="me">20</div>
     <div class="timer-pill" id="timerPill" style="display:none">2:00</div>
@@ -594,11 +606,40 @@
         🧱 Eliminate blocks · Build your city
       </div>
 
-      <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
-        <button class="btn btn-p" id="playBtn" style="width:160px;font-size:18px;padding:16px 0" onclick="onPlay()">▶ &nbsp;PLAY</button>
-        <button class="btn btn-s lb-entry-btn" onclick="showLeaderboard()" title="Leaderboard">🏅</button>
-        <button class="btn btn-s lb-entry-btn" id="accountBtn" onclick="onAccountBtn()" title="Account">👤</button>
+      <!-- Top-right icon buttons -->
+      <div style="position:absolute;top:14px;right:14px;display:flex;flex-direction:column;gap:10px;align-items:center">
+        <button class="splash-icon-btn" id="accountBtn" onclick="onAccountBtn()" title="Account">👤</button>
+        <button class="splash-icon-btn" onclick="showLeaderboard()" title="Leaderboard">🏅</button>
+        <button class="splash-icon-btn" onclick="showSettings()" title="Settings">⚙️</button>
       </div>
+
+      <button class="btn btn-p" id="playBtn" style="width:180px;font-size:18px;padding:16px 0;margin-top:4px" onclick="onPlay()">▶ &nbsp;PLAY</button>
+    </div>
+    <!-- Settings Overlay -->
+    <div class="overlay hidden" id="settingsOv" style="gap:14px;padding:28px 20px;align-items:center">
+      <div class="ov-title" style="font-size:22px">Settings</div>
+      <div class="settings-row">
+        <div style="text-align:left">
+          <div style="font-size:14px;font-weight:700;color:var(--text)">🔊 Sound Effects</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Match, bomb & rocket sounds</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="settingSound" onchange="onSettingSound(this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="settings-row">
+        <div style="text-align:left">
+          <div style="font-size:14px;font-weight:700;color:var(--text)">📳 Vibration</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Haptic feedback on bombs & rockets</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="settingVibration" onchange="onSettingVibration(this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="settings-row">
+        <div style="text-align:left">
+          <div style="font-size:14px;font-weight:700;color:var(--text)">🗑️ Reset Progress</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Clear all stars, scores & items</div>
+        </div>
+        <button class="btn btn-s" style="font-size:12px;padding:7px 14px;border-color:rgba(255,80,80,.4);color:#ff8080;flex-shrink:0" onclick="onResetProgress()">Reset All Data</button>
+      </div>
+      <button class="btn btn-s" style="margin-top:4px;font-size:14px;padding:10px 32px" onclick="hideSettings()">← Back</button>
     </div>
     <!-- Leaderboard Overlay -->
     <div class="overlay hidden" id="lbOv" style="gap:14px;padding:24px 20px">
