@@ -18,10 +18,10 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file("cubematch.keystore")
-            storePassword "cubematch123"
-            keyAlias "cubematch"
-            keyPassword "cubematch123"
+            storeFile file("/Users/haoyang.yuan@newsbreak.com/cubematch3d.keystore")
+            storePassword "cubematch123654"
+            keyAlias "cubematch3d"
+            keyPassword "cubematch123654"
         }
     }
     buildTypes {
