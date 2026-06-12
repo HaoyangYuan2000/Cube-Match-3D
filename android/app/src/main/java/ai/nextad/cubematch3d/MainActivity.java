@@ -12,6 +12,7 @@ import android.webkit.JavascriptInterface;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.BridgeActivity;
+import com.google.firebase.analytics.FirebaseAnalytics;
 
 public class MainActivity extends BridgeActivity {
 
@@ -20,6 +21,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        FirebaseAnalytics.getInstance(this);
         getBridge().getWebView().addJavascriptInterface(new VibrateInterface(this), "AndroidVibrate");
         requestNotificationPermission();
     }

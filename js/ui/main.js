@@ -102,4 +102,11 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
 }));
 
 let _progressPromise = initFirebase().then(() => loadProgress());
-_progressPromise.then(() => prefetchSuggestions());
+_progressPromise.then(progress => {
+  if (progress && progress.blocksElim > totalBlocksElim) {
+    totalBlocksElim = progress.blocksElim;
+    localStorage.setItem('cb3d_blocks', totalBlocksElim);
+  }
+  updateCity();
+  prefetchSuggestions();
+});
