@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "525393991475-e4l4mi5o3gk75i85i9anbjcnro22ql96.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ai.nextad.cubematch3d",
+            "certificate_hash": "faabbbf83c6f35e80ebf0301f57fffefa8dbeec9"
+          }
+        },
+        {
           "client_id": "525393991475-6j5dhsua8jkor4rj3476dsqh45fvbaa6.apps.googleusercontent.com",
           "client_type": 3
         }
