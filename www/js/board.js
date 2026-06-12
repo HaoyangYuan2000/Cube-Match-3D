@@ -164,7 +164,7 @@ function trySwap(a,b){
       });
       return;
     }
-    processMatches(m,0,a);
+    processMatches(m,0);
   });
 }
 
@@ -322,10 +322,38 @@ function getBombCells(group){
 }
 
 // Rocket: clear entire horizontal ring (row r on 4 side faces 0-3)
-function getRocketCells(group, triggerRow){
-  const cells=[];
-  for(let f=0;f<4;f++)for(let c=0;c<FC;c++)cells.push([f,triggerRow,c]);
-  return cells;
+function getRocketCells(group){
+  const groupSet=new Set(group.map(([f,r,c])=>`${f},${r},${c}`));
+  const result=new Set();
+
+  // same-face 4-directional neighbors
+  for(const [fi,r,c] of group){
+    for(const [nr,nc] of [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]){
+      if(nr>=0&&nr<FC&&nc>=0&&nc<FC){
+        const k=`${fi},${nr},${nc}`;
+        if(!groupSet.has(k)) result.add(k);
+      }
+    }
+  }
+
+  // cross-face seam neighbors
+  for(const seam of CROSS_SEAMS){
+    for(let i=0;i<seam.length;i++){
+      const s=seam[i];
+      const k=`${s.fi},${s.r},${s.c}`;
+      if(!groupSet.has(k)) continue; // this seam cell is in the group
+      // its seam neighbors are the cells adjacent in the seam array
+      for(const di of [-1,1]){
+        const j=i+di;
+        if(j<0||j>=seam.length) continue;
+        const nb=seam[j];
+        const nk=`${nb.fi},${nb.r},${nb.c}`;
+        if(!groupSet.has(nk)) result.add(nk);
+      }
+    }
+  }
+
+  return [...result].map(k=>k.split(',').map(Number));
 }
 
 // Bomb particle ring
@@ -391,7 +419,7 @@ function showFloat(text,sx,sy){
   wrap.appendChild(el);setTimeout(()=>el.remove(),950);
 }
 
-function processMatches(matches,chain,triggerCell){
+function processMatches(matches,chain){
   // ── Power-up expansion ──
   const groups=groupMatches(matches);
   const expandedSet=new Set(matches.map(([fi,r,c])=>`${fi},${r},${c}`));
@@ -401,7 +429,7 @@ function processMatches(matches,chain,triggerCell){
   for(const group of groups){
     if(group.length>=5){
       hasRocket=true;
-      const rc=getRocketCells(group, triggerCell?triggerCell.r:group[0][1]);
+      const rc=getRocketCells(group);
       rocketCells=rocketCells.concat(rc);
       rc.forEach(([fi,r,c])=>expandedSet.add(`${fi},${r},${c}`));
     } else if(group.length>=4){
@@ -478,7 +506,7 @@ function processMatches(matches,chain,triggerCell){
         applyGravity(()=>{
           updateHUD();
           const next=findAllMatches();
-          if(next.length&&chain<6){processMatches(next,chain+1,triggerCell);return;}
+          if(next.length&&chain<6){processMatches(next,chain+1);return;}
           animating=false;_taUnfreeze();checkEnd();draw();
         });
       }
