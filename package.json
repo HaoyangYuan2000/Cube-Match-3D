@@ -4,8 +4,9 @@
   "description": "Cube Match 3D - Block elimination puzzle game",
   "main": "index.js",
   "scripts": {
-    "build": "echo 'Static app - no build step'",
-    "sync": "npx cap sync"
+    "build": "cp -f index.html www/ && cp -rf js www/ && cp -rf css www/",
+    "sync": "npm run build && npx cap sync android",
+    "deploy": "npm run sync && cd android && ./gradlew assembleRelease && cd .. && adb uninstall ai.nextad.cubematch3d; adb install android/app/build/outputs/apk/release/app-release.apk"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",

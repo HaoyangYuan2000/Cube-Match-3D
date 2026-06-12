@@ -164,7 +164,7 @@ function trySwap(a,b){
       });
       return;
     }
-    processMatches(m,0);
+    processMatches(m,0,a);
   });
 }
 
@@ -322,11 +322,9 @@ function getBombCells(group){
 }
 
 // Rocket: clear entire horizontal ring (row r on 4 side faces 0-3)
-function getRocketCells(group){
-  const rows=group.map(([,r])=>r).sort((a,b)=>a-b);
-  const r=rows[Math.floor(rows.length/2)]; // median row
+function getRocketCells(group, triggerRow){
   const cells=[];
-  for(let f=0;f<4;f++)for(let c=0;c<FC;c++)cells.push([f,r,c]);
+  for(let f=0;f<4;f++)for(let c=0;c<FC;c++)cells.push([f,triggerRow,c]);
   return cells;
 }
 
@@ -393,7 +391,7 @@ function showFloat(text,sx,sy){
   wrap.appendChild(el);setTimeout(()=>el.remove(),950);
 }
 
-function processMatches(matches,chain){
+function processMatches(matches,chain,triggerCell){
   // ── Power-up expansion ──
   const groups=groupMatches(matches);
   const expandedSet=new Set(matches.map(([fi,r,c])=>`${fi},${r},${c}`));
@@ -403,7 +401,7 @@ function processMatches(matches,chain){
   for(const group of groups){
     if(group.length>=5){
       hasRocket=true;
-      const rc=getRocketCells(group);
+      const rc=getRocketCells(group, triggerCell?triggerCell.r:group[0][1]);
       rocketCells=rocketCells.concat(rc);
       rc.forEach(([fi,r,c])=>expandedSet.add(`${fi},${r},${c}`));
     } else if(group.length>=4){
@@ -480,7 +478,7 @@ function processMatches(matches,chain){
         applyGravity(()=>{
           updateHUD();
           const next=findAllMatches();
-          if(next.length&&chain<6){processMatches(next,chain+1);return;}
+          if(next.length&&chain<6){processMatches(next,chain+1,triggerCell);return;}
           animating=false;_taUnfreeze();checkEnd();draw();
         });
       }

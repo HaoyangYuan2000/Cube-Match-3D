@@ -237,6 +237,169 @@ async function fetchLeaderboard(mode) {
   }
 }
 
+// ── Social / Friends ──
+
+async function fetchSuggestedPlayers(count) {
+  if (!_db || !_uid) return [];
+  try {
+    const myDoc = await _db.collection('players').doc(_uid).get();
+    const friends = (myDoc.exists && myDoc.data().friends) || [];
+    const excluded = new Set([...friends, _uid]);
+    const snap = await _db.collection('players')
+      .orderBy('classicBest', 'desc').limit(30).get();
+    const pool = snap.docs
+      .filter(d => !excluded.has(d.id) && d.data().nickname)
+      .map(d => ({ uid: d.id, ...d.data() }));
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, count).map(p => ({
+      uid: p.uid, nickname: p.nickname,
+      classicBest: p.classicBest || 0, taBest: p.taBest || 0
+    }));
+  } catch (e) { return []; }
+}
+
+async function searchPlayer(nickname) {
+  if (!_db) return null;
+  try {
+    const doc = await _db.collection('nicknames').doc(nickname).get();
+    if (!doc.exists) return null;
+    const uid = doc.data().uid;
+    if (uid === _uid) return 'self';
+    const player = await _db.collection('players').doc(uid).get();
+    const d = player.exists ? player.data() : {};
+    return { uid, nickname, classicBest: d.classicBest || 0, taBest: d.taBest || 0 };
+  } catch (e) { return null; }
+}
+
+async function sendFriendRequest(toUid, toNickname) {
+  if (!_db || !_uid) return;
+  const myNick = localStorage.getItem('cb3d_nickname') || '?';
+  const docId = toUid + '_' + _uid;
+  try {
+    await _db.collection('friendRequests').doc(docId).set({
+      from: _uid, fromNickname: myNick,
+      toUid, toNickname,
+      ts: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (e) {}
+}
+
+async function loadFriendRequests() {
+  if (!_db || !_uid) return [];
+  try {
+    const snap = await _db.collection('friendRequests')
+      .where('toUid', '==', _uid).limit(20).get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) { return []; }
+}
+
+async function acceptFriendRequest(fromUid, docId) {
+  if (!_db || !_uid) return;
+  const FV = firebase.firestore.FieldValue;
+  try {
+    await Promise.all([
+      _db.collection('players').doc(_uid).set({ friends: FV.arrayUnion(fromUid) }, { merge: true }),
+      _db.collection('players').doc(fromUid).set({ friends: FV.arrayUnion(_uid) }, { merge: true }),
+      _db.collection('friendRequests').doc(docId).delete()
+    ]);
+  } catch (e) {}
+}
+
+async function rejectFriendRequest(docId) {
+  if (!_db) return;
+  try { await _db.collection('friendRequests').doc(docId).delete(); } catch (e) {}
+}
+
+async function removeFriend(friendUid) {
+  if (!_db || !_uid) return;
+  const FV = firebase.firestore.FieldValue;
+  try {
+    await Promise.all([
+      _db.collection('players').doc(_uid).set({ friends: FV.arrayRemove(friendUid) }, { merge: true }),
+      _db.collection('players').doc(friendUid).set({ friends: FV.arrayRemove(_uid) }, { merge: true })
+    ]);
+  } catch (e) {}
+}
+
+async function fetchFriendsLeaderboard(mode) {
+  if (!_db || !_uid) return [];
+  try {
+    const myDoc = await _db.collection('players').doc(_uid).get();
+    const friends = (myDoc.exists && myDoc.data().friends) || [];
+    if (!friends.length) return [];
+    const chunks = [];
+    for (let i = 0; i < friends.length; i += 10) chunks.push(friends.slice(i, i + 10));
+    const players = [];
+    for (const chunk of chunks) {
+      const snap = await _db.collection('players').where(firebase.firestore.FieldPath.documentId(), 'in', chunk).get();
+      snap.docs.forEach(d => players.push({ uid: d.id, ...d.data() }));
+    }
+    const field = mode === 'classic' ? 'classicBest' : 'taBest';
+    const myData = myDoc.data() || {};
+    players.push({ uid: _uid, nickname: localStorage.getItem('cb3d_nickname') || '?', [field]: myData[field] || 0 });
+    return players
+      .filter(p => p.nickname)
+      .sort((a, b) => (b[field] || 0) - (a[field] || 0))
+      .slice(0, 20)
+      .map(p => ({ id: p.nickname, name: p.nickname, score: p[field] || 0, uid: p.uid }));
+  } catch (e) { return []; }
+}
+
+async function claimFriendBlockRewards() {
+  if (!_db || !_uid) return 0;
+  try {
+    const myDoc = await _db.collection('players').doc(_uid).get();
+    if (!myDoc.exists) return 0;
+    const data = myDoc.data();
+    const friends = data.friends || [];
+    if (!friends.length) return 0;
+    const rewardLog = data.friendRewardLog || {};
+    let totalReward = 0;
+    const newLog = { ...rewardLog };
+    const chunks = [];
+    for (let i = 0; i < friends.length; i += 10) chunks.push(friends.slice(i, i + 10));
+    const friendDocs = [];
+    for (const chunk of chunks) {
+      const snap = await _db.collection('players').where(firebase.firestore.FieldPath.documentId(), 'in', chunk).get();
+      snap.docs.forEach(d => friendDocs.push({ uid: d.id, ...d.data() }));
+    }
+    for (const f of friendDocs) {
+      const current = f.blocksElim || 0;
+      const last = rewardLog[f.uid] || 0;
+      const newElim = current - last;
+      if (newElim >= 100) {
+        const reward = Math.floor(newElim / 100);
+        totalReward += reward;
+        newLog[f.uid] = last + reward * 100;
+      }
+    }
+    if (totalReward > 0) {
+      await _db.collection('players').doc(_uid).set({ friendRewardLog: newLog }, { merge: true });
+    }
+    return totalReward;
+  } catch (e) { return 0; }
+}
+
+async function getFriendRequestCount() {
+  if (!_db || !_uid) return 0;
+  try {
+    const snap = await _db.collection('friendRequests').where('toUid', '==', _uid).limit(20).get();
+    return snap.size;
+  } catch (e) { return 0; }
+}
+
+async function checkAlreadyFriends(targetUid) {
+  if (!_db || !_uid) return false;
+  try {
+    const doc = await _db.collection('players').doc(_uid).get();
+    const friends = (doc.exists && doc.data().friends) || [];
+    return friends.includes(targetUid);
+  } catch (e) { return false; }
+}
+
 async function saveAllProgress() {
   if (!_db || !_uid) return;
   const totalStars = LEVELS.reduce((sum, _, i) => sum + getStars(i), 0);

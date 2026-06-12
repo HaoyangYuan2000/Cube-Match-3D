@@ -56,8 +56,8 @@
       <span class="tool-label" id="sliceLabel">Slice ×6</span>
     </button>
     <!-- Tutorial -->
-    <div class="overlay hidden" id="tutOv" style="z-index:45;gap:0;padding:20px 24px 24px;pointer-events:auto;cursor:pointer">
-      <div class="ov-title" style="font-size:22px;margin-bottom:4px">How to Play</div>
+    <div class="overlay hidden" id="tutOv" style="z-index:45;gap:0;padding:8px 24px 24px;pointer-events:auto;cursor:pointer">
+      <div class="ov-title" style="font-size:22px;margin-bottom:16px">How to Play</div>
       <div style="display:flex;gap:28px;justify-content:center;align-items:flex-start">
 
         <!-- Single finger -->
@@ -87,12 +87,12 @@
 
       </div>
 
-      <!-- Power-up tip -->
-      <div style="margin-top:16px;width:100%;max-width:320px;background:rgba(255,95,160,.07);border:1px solid rgba(255,95,160,.2);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:14px">
-        <div style="font-size:28px;flex-shrink:0;width:36px;text-align:center">💥</div>
+      <!-- Cross-face demo -->
+      <div style="margin-top:16px;width:100%;max-width:320px;background:rgba(0,200,255,.07);border:1px solid rgba(0,200,255,.22);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:14px">
+        <canvas id="tutCrossDemo" width="90" height="90" style="flex-shrink:0;border-radius:8px"></canvas>
         <div>
-          <div style="font-size:15px;font-weight:700;color:var(--text)">Chain 4+ for power-ups</div>
-          <div style="font-size:13px;color:var(--muted);margin-top:3px;line-height:1.6">Match <b style="color:#ffd700">4</b> → 💣 Bomb clears 3×3 &nbsp;·&nbsp; Match <b style="color:#ffd700">5+</b> → 🚀 Rocket clears a full row</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text)">Match across edges</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:3px;line-height:1.6">Gems on <b style="color:#00ccff">adjacent faces</b> count as neighbours — matches can cross the fold!</div>
         </div>
       </div>
 
@@ -102,15 +102,6 @@
         <div>
           <div style="font-size:15px;font-weight:700;color:var(--text)">Rotate to change gravity</div>
           <div style="font-size:13px;color:var(--muted);margin-top:3px;line-height:1.6">Rotate the cube — blocks always fall<br>toward the <b style="color:var(--accent)">bottom of your screen</b></div>
-        </div>
-      </div>
-
-      <!-- Cross-face demo -->
-      <div style="margin-top:8px;width:100%;max-width:320px;background:rgba(0,200,255,.07);border:1px solid rgba(0,200,255,.22);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:14px">
-        <canvas id="tutCrossDemo" width="90" height="90" style="flex-shrink:0;border-radius:8px"></canvas>
-        <div>
-          <div style="font-size:15px;font-weight:700;color:var(--text)">Match across edges</div>
-          <div style="font-size:13px;color:var(--muted);margin-top:3px;line-height:1.6">Gems on <b style="color:#00ccff">adjacent faces</b> count as neighbours — matches can cross the fold!</div>
         </div>
       </div>
 
@@ -610,6 +601,7 @@
       <div style="position:absolute;top:14px;right:14px;display:flex;flex-direction:column;gap:10px;align-items:center">
         <button class="splash-icon-btn" id="accountBtn" onclick="onAccountBtn()" title="Account">👤</button>
         <button class="splash-icon-btn" onclick="showLeaderboard()" title="Leaderboard">🏅</button>
+        <button class="splash-icon-btn" style="position:relative" onclick="showFriendsFromSplash()" title="Friends">🤝<span id="friendReqBadge" style="display:none;position:absolute;top:-2px;right:-2px;width:10px;height:10px;background:#ff5f5f;border-radius:50%"></span></button>
         <button class="splash-icon-btn" onclick="showSettings()" title="Settings">⚙️</button>
       </div>
 
@@ -632,25 +624,39 @@
         </div>
         <label class="toggle"><input type="checkbox" id="settingVibration" onchange="onSettingVibration(this.checked)"><span class="toggle-slider"></span></label>
       </div>
-      <div class="settings-row">
-        <div style="text-align:left">
-          <div style="font-size:14px;font-weight:700;color:var(--text)">🗑️ Reset Progress</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">Clear all stars, scores & items</div>
-        </div>
-        <button class="btn btn-s" style="font-size:12px;padding:7px 14px;border-color:rgba(255,80,80,.4);color:#ff8080;flex-shrink:0" onclick="onResetProgress()">Reset All Data</button>
-      </div>
       <button class="btn btn-s" style="margin-top:4px;font-size:14px;padding:10px 32px" onclick="hideSettings()">← Back</button>
     </div>
     <!-- Leaderboard Overlay -->
     <div class="overlay hidden" id="lbOv" style="gap:14px;padding:24px 20px">
       <div class="ov-title" style="font-size:22px">Leaderboard</div>
-      <div style="display:flex;gap:8px;width:100%;max-width:280px">
+      <div style="display:flex;gap:6px;width:100%;max-width:280px">
         <button class="lb-tab active" id="lbTabClassic" onclick="switchLbTab('classic')">🏆 Classic</button>
-        <button class="lb-tab" id="lbTabTimed" onclick="switchLbTab('timed')">⏱ Time Attack</button>
+        <button class="lb-tab" id="lbTabTimed" onclick="switchLbTab('timed')">⏱ Timed</button>
+        <button class="lb-tab" id="lbTabFriends" onclick="switchLbTab('friends')">👥 Friends</button>
       </div>
-      <div class="lb-box" id="lbMain" style="max-height:260px"></div>
+      <div class="lb-box" id="lbMain" style="max-height:240px"></div>
       <button class="btn btn-s" style="font-size:12px;padding:8px 20px" onclick="hideLeaderboard()">← Back</button>
     </div>
+
+    <!-- Friends Overlay -->
+    <div class="overlay hidden" id="friendsOv" style="gap:14px;padding:24px 20px">
+      <div class="ov-title" style="font-size:22px">Friends</div>
+      <div style="display:flex;gap:8px;width:100%;max-width:300px">
+        <input id="friendSearchInput" placeholder="Search by nickname…" style="flex:1;padding:10px 14px;border-radius:12px;border:1px solid rgba(124,111,255,.4);background:rgba(255,255,255,.06);color:#fff;font-size:14px;outline:none;box-sizing:border-box" oninput="onFriendSearchInput()">
+        <button class="btn btn-p" style="padding:10px 16px;font-size:14px" onclick="doFriendSearch()">Search</button>
+      </div>
+      <div id="friendSearchResult" style="width:100%;max-width:300px"></div>
+      <div id="friendRequestsSection" style="width:100%;max-width:300px;display:none">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Friend Requests</div>
+        <div id="friendRequestsList"></div>
+      </div>
+      <div style="width:100%;max-width:300px">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">My Friends</div>
+        <div id="friendsList" style="display:flex;flex-direction:column;gap:6px"><div style="font-size:13px;color:var(--muted)">Loading…</div></div>
+      </div>
+      <button class="btn btn-s" style="font-size:13px;padding:9px 28px" onclick="hideFriends()">← Back</button>
+    </div>
+
     <!-- Mode Select -->
     <div class="overlay hidden" id="modeOv" style="gap:18px;padding:28px 20px">
       <button class="back-btn" onclick="showSplash()" style="position:absolute;top:12px;left:12px;font-size:15px;padding:7px 18px">← Back</button>
