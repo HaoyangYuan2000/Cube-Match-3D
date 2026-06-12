@@ -93,6 +93,15 @@
         </div>
       </div>
 
+      <!-- Cross-face demo -->
+      <div style="margin-top:8px;width:100%;max-width:320px;background:rgba(0,200,255,.07);border:1px solid rgba(0,200,255,.22);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:14px">
+        <canvas id="tutCrossDemo" width="90" height="90" style="flex-shrink:0;border-radius:8px"></canvas>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">Match across edges</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.6">Gems on <b style="color:#00ccff">adjacent faces</b> count as neighbours — matches can cross the fold!</div>
+        </div>
+      </div>
+
       <button class="btn btn-p" id="tutCloseBtn" onclick="closeTutorial()" style="margin-top:14px;width:160px;font-size:15px;padding:12px 0">Got it!</button>
     </div>
     <!-- Splash Screen -->
@@ -604,6 +613,7 @@
     <!-- Mode Select -->
     <div class="overlay hidden" id="modeOv" style="gap:18px;padding:28px 20px">
       <button class="back-btn" onclick="showSplash()" style="position:absolute;top:12px;left:12px">← Back</button>
+      <button onclick="showTutorial()" style="position:absolute;top:12px;right:12px;background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:8px;border:1px solid rgba(124,111,255,.2)">🎬 Tutorial</button>
       <div class="ov-title" style="font-size:24px">Choose Mode</div>
       <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:300px">
         <button class="mode-card" onclick="selectMode('classic')">
