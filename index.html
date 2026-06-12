@@ -642,21 +642,22 @@
 
     <!-- Friends Overlay -->
     <div class="overlay hidden" id="friendsOv" style="gap:14px;padding:24px 20px">
+      <button class="back-btn" onclick="hideFriends()" style="position:absolute;top:12px;left:12px;font-size:15px;padding:7px 18px">← Back</button>
       <div class="ov-title" style="font-size:22px">Friends</div>
       <div style="display:flex;gap:8px;width:100%;max-width:300px">
         <input id="friendSearchInput" placeholder="Search by nickname…" style="flex:1;padding:10px 14px;border-radius:12px;border:1px solid rgba(124,111,255,.4);background:rgba(255,255,255,.06);color:#fff;font-size:14px;outline:none;box-sizing:border-box" oninput="onFriendSearchInput()">
         <button class="btn btn-p" style="padding:10px 16px;font-size:14px" onclick="doFriendSearch()">Search</button>
       </div>
       <div id="friendSearchResult" style="width:100%;max-width:300px"></div>
-      <div id="friendRequestsSection" style="width:100%;max-width:300px;display:none">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Friend Requests</div>
-        <div id="friendRequestsList"></div>
+
+      <div id="pendingSection" style="width:100%;max-width:300px;display:none">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Pending</div>
+        <div id="pendingList" style="display:flex;flex-direction:column;gap:6px"></div>
       </div>
       <div style="width:100%;max-width:300px">
         <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">My Friends</div>
         <div id="friendsList" style="display:flex;flex-direction:column;gap:6px"><div style="font-size:13px;color:var(--muted)">Loading…</div></div>
       </div>
-      <button class="btn btn-s" style="font-size:13px;padding:9px 28px" onclick="hideFriends()">← Back</button>
     </div>
 
     <!-- Mode Select -->
@@ -701,7 +702,7 @@
       <div style="font-size:40px">☁️</div>
       <div class="ov-title" id="bindOvTitle" style="font-size:22px">Save Your Progress</div>
       <div id="bindOvDesc" style="font-size:13px;color:var(--muted);text-align:center;max-width:240px;line-height:1.6;margin-bottom:4px">
-        Link your Google account to sync progress across devices and never lose your score.
+        Link your Google account to sync progress across devices, never lose your score, and unlock Friends.
       </div>
       <button id="bindGoogleBtn" onclick="doGoogleLink()"
         style="display:flex;align-items:center;gap:10px;padding:12px 22px;border-radius:14px;border:none;background:#fff;color:#222;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;min-width:210px;justify-content:center">

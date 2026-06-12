@@ -14,6 +14,11 @@ async function saveNickname(){
   btn.disabled=true;
   btn.textContent='Checking...';
   err.style.display='none';
+  if(val===getNickname()){
+    document.getElementById('nickOv').classList.add('hidden');
+    if(window._pendingAfterNick){const fn=window._pendingAfterNick;window._pendingAfterNick=null;fn();}
+    return;
+  }
   const status=await checkNickname(val);
   if(status==='taken'){
     err.textContent='Name already taken';
@@ -22,8 +27,8 @@ async function saveNickname(){
     btn.textContent='Confirm';
     return;
   }
-  localStorage.setItem('cb3d_nickname',val);
   await claimNickname(val);
+  localStorage.setItem('cb3d_nickname',val);
   document.getElementById('nickOv').classList.add('hidden');
   if(window._pendingAfterNick){const fn=window._pendingAfterNick;window._pendingAfterNick=null;fn();}
 }
@@ -108,13 +113,9 @@ async function doGoogleLink(){
   if(result.success){
     hideBindPrompt();
     showToast('✅ Account linked! Progress saved.');
+    const hadNickname=getNickname(); // save anonymous nickname before overwriting
     // Reload progress from Firestore — nickname from Firestore takes highest priority
     const progress=await loadProgress();
-    // If Firestore has no nickname, fall back to Google displayName as initial suggestion
-    if(!progress?.nickname&&result.displayName){
-      const safe=result.displayName.replace(/[^a-zA-Z0-9_\- ]/g,'').slice(0,16);
-      if(safe.length>=2&&!getNickname()){localStorage.setItem('cb3d_nickname',safe);await claimNickname(safe);}
-    }
     if(progress){
       if(progress.nickname)localStorage.setItem('cb3d_nickname',progress.nickname);
       if(progress.stars)Object.entries(progress.stars).forEach(([i,s])=>localStorage.setItem('cb3d_s'+i,s));
@@ -142,6 +143,17 @@ async function doGoogleLink(){
     }
     updateSliceBtn();
     updateCity();
+    // Nickname setup for newly linked accounts
+    if(!progress?.nickname){
+      if(hadNickname){
+        // Case 2: had anonymous nickname → silently claim it under Google account
+        await claimNickname(hadNickname);
+      } else {
+        // Case 1: no prior nickname → show dialog pre-filled with email prefix
+        const emailPrefix=(result.email||'').split('@')[0].replace(/[^a-zA-Z0-9_\- ]/g,'').slice(0,14);
+        showNickSetup(null, emailPrefix||'Player');
+      }
+    }
     getFriendRequestCount().then(n=>{
       const badge=document.getElementById('friendReqBadge');
       if(badge){badge.textContent=n;badge.style.display=n>0?'':'none';}
@@ -170,14 +182,29 @@ function showToast(msg){
   setTimeout(()=>el.remove(),6000);
 }
 
-function showNickSetup(then){
+function showNickSetup(then, prefill=''){
   window._pendingAfterNick=then||null;
-  document.getElementById('nickInput').value='';
+  document.getElementById('nickInput').value=prefill;
   document.getElementById('nickError').style.display='none';
   document.getElementById('nickConfirmBtn').disabled=false;
   document.getElementById('nickConfirmBtn').textContent='Confirm';
   document.getElementById('nickOv').classList.remove('hidden');
   setTimeout(()=>document.getElementById('nickInput').focus(),100);
+}
+
+async function _autoAssignNickname(displayName){
+  let base=(displayName||'').replace(/[^a-zA-Z0-9_\- ]/g,'').slice(0,14);
+  if(base.length<2) base='Player';
+  let candidate=base, n=2;
+  while(n<=99){
+    const status=await checkNickname(candidate);
+    if(status!=='taken'){
+      localStorage.setItem('cb3d_nickname',candidate);
+      await claimNickname(candidate);
+      return;
+    }
+    candidate=(base+n).slice(0,16); n++;
+  }
 }
 
 // ── Leaderboard rendering ──
@@ -223,7 +250,7 @@ function showCityToast(name){
   const wrap=document.getElementById('cw');
   if(!wrap)return;
   const el=document.createElement('div');
-  el.textContent='🏙️ '+name+' Built!';
+  el.textContent='🏙️ '+name+' Built! Check menu';
   el.style.cssText='position:absolute;top:6%;left:50%;transform:translateX(-50%) translateY(0);font-size:13px;white-space:nowrap;z-index:60;color:#ffe066;background:rgba(20,16,48,.85);padding:6px 16px;border-radius:99px;border:1px solid rgba(255,224,102,.3);pointer-events:none;transition:transform 3s ease-out,opacity 3s ease-out';
   setTimeout(()=>requestAnimationFrame(()=>{
     el.style.transform='translateX(-50%) translateY(-40px)';
@@ -738,20 +765,22 @@ async function onPlay(){
     saveProgress('tools',{slice:sliceUses});saveProgress('sliceDay',today);
   }
 
-  // 好友奖励（静默结算）
-  claimFriendBlockRewards().then(reward=>{
-    if(reward>0){
-      totalBlocksElim+=reward;
-      localStorage.setItem('cb3d_blocks',totalBlocksElim);
-      saveProgress('blocksElim',totalBlocksElim);
-      setTimeout(()=>showToast('🧱 Your friends earned you +'+reward+' blocks!'),800);
-    }
-  });
-  // 好友申请红点
-  getFriendRequestCount().then(n=>{
-    const badge=document.getElementById('friendReqBadge');
-    if(badge)badge.style.display=n>0?'block':'none';
-  });
+  if(!isAnonymousUser()){
+    // 好友奖励（静默结算）
+    claimFriendBlockRewards().then(reward=>{
+      if(reward>0){
+        totalBlocksElim+=reward;
+        localStorage.setItem('cb3d_blocks',totalBlocksElim);
+        saveProgress('blocksElim',totalBlocksElim);
+        setTimeout(()=>showToast('🧱 Your friends earned you +'+reward+' blocks!'),800);
+      }
+    });
+    // 好友申请红点
+    getFriendRequestCount().then(n=>{
+      const badge=document.getElementById('friendReqBadge');
+      if(badge)badge.style.display=n>0?'block':'none';
+    });
+  }
 
   document.getElementById('splashOv').classList.add('hidden');
   updateSliceBtn();
@@ -767,6 +796,13 @@ async function onPlay(){
     }
   }
 
+  if(!getNickname()&&!isAnonymousUser()){
+    const u=_auth&&_auth.currentUser;
+    const emailPrefix=u&&u.email?(u.email.split('@')[0].replace(/[^a-zA-Z0-9_\- ]/g,'').slice(0,14)||'Player'):null;
+    const displayName=u&&u.displayName;
+    if(emailPrefix) await _autoAssignNickname(emailPrefix);
+    else if(displayName) await _autoAssignNickname(displayName);
+  }
   if(!getNickname()){
     showNickSetup(afterNick);
   } else {
@@ -830,6 +866,7 @@ async function loadLbTab(tab){
   const el=document.getElementById('lbMain');
   el.innerHTML='<div class="lb-loading">Loading...</div>';
   if(tab==='friends'){
+    if(isAnonymousUser()){el.innerHTML='<div class="lb-loading">Sign in with Google to see friends\' scores!</div>';return;}
     const rows=await fetchFriendsLeaderboard('classic');
     if(!rows.length){el.innerHTML='<div class="lb-loading">Add friends to see their scores!</div>';return;}
     renderLeaderboard('lbMain',rows,localStorage.getItem('cb3d_nickname'));
@@ -845,18 +882,42 @@ async function _openFriends(){
   document.getElementById('friendSearchResult').innerHTML='';
   document.getElementById('friendsOv').classList.remove('hidden');
   _loadSuggestedPlayers();
-  await _loadFriendRequests();
-  await _loadFriendsList();
+  await Promise.all([_loadPendingRequests(), _loadFriendsList()]);
+}
+
+async function _loadPendingRequests(){
+  const [incoming,outgoing]=await Promise.all([loadFriendRequests(),loadSentRequests()]);
+  const sec=document.getElementById('pendingSection');
+  const list=document.getElementById('pendingList');
+  const badge=document.getElementById('friendReqBadge');
+  if(badge){badge.textContent=incoming.length;badge.style.display=incoming.length?'':'none';}
+  if(!incoming.length&&!outgoing.length){sec.style.display='none';return;}
+  sec.style.display='';
+  const inRows=incoming.map(r=>`
+    <div data-id="${r.id}" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:rgba(255,255,255,.04);border-radius:10px;border:1px solid rgba(124,111,255,.15)">
+      <div style="font-size:14px;font-weight:600;color:var(--text)">${r.fromNickname||'?'}</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-p" style="font-size:11px;padding:5px 12px" onclick="doAccept('${r.from}','${r.id}',this)">Accept</button>
+        <button class="btn btn-s" style="font-size:11px;padding:5px 12px" onclick="doReject('${r.id}',this)">Reject</button>
+      </div>
+    </div>`);
+  const outRows=outgoing.map(r=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:rgba(255,255,255,.04);border-radius:10px;border:1px solid rgba(124,111,255,.15)">
+      <div style="font-size:14px;font-weight:600;color:var(--text)">${r.toNickname||'?'}</div>
+      <span style="font-size:11px;color:var(--muted)">Sent</span>
+    </div>`);
+  list.innerHTML=[...inRows,...outRows].join('');
 }
 
 async function showFriendsFromSplash(){
+  if(isAnonymousUser()){
+    showBindPrompt();
+    return;
+  }
   if(!localStorage.getItem('cb3d_nickname')){
     await _progressPromise;
-    document.getElementById('splashOv').classList.add('hidden');
-    showNickSetup(async()=>{
-      await _openFriends();
-    });
-    return;
+    const displayName=_auth&&_auth.currentUser&&_auth.currentUser.displayName;
+    if(displayName) await _autoAssignNickname(displayName);
   }
   document.getElementById('splashOv').classList.add('hidden');
   await _openFriends();
@@ -913,35 +974,18 @@ async function doSendRequest(uid,nickname,btn){
   btn.textContent=result==='accepted'?'Friends!':'Sent!';
 }
 
-async function _loadFriendRequests(){
-  const reqs=await loadFriendRequests();
-  const sec=document.getElementById('friendRequestsSection');
-  const list=document.getElementById('friendRequestsList');
-  const badge=document.getElementById('friendReqBadge');
-  if(badge)badge.style.display=reqs.length?'block':'none';
-  if(!reqs.length){sec.style.display='none';return;}
-  sec.style.display='block';
-  list.innerHTML=reqs.map(r=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:rgba(255,255,255,.04);border-radius:10px;margin-bottom:6px;border:1px solid rgba(124,111,255,.15)">
-      <div style="font-size:14px;font-weight:600;color:var(--text)">${r.fromNickname}</div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-p" style="font-size:11px;padding:5px 12px" onclick="doAccept('${r.from}','${r.id}',this)">Accept</button>
-        <button class="btn btn-s" style="font-size:11px;padding:5px 12px" onclick="doReject('${r.id}',this)">Reject</button>
-      </div>
-    </div>`).join('');
-}
 
 async function doAccept(fromUid,docId,btn){
-  btn.closest('div[style*="margin-bottom"]').style.opacity='0.4';
+  btn.closest('[data-id]').style.opacity='0.4';
   await acceptFriendRequest(fromUid,docId);
-  await _loadFriendRequests();
+  await _loadPendingRequests();
   await _loadFriendsList();
 }
 
 async function doReject(docId,btn){
-  btn.closest('div[style*="margin-bottom"]').style.opacity='0.4';
+  btn.closest('[data-id]').style.opacity='0.4';
   await rejectFriendRequest(docId);
-  await _loadFriendRequests();
+  await _loadPendingRequests();
 }
 
 async function _loadFriendsList(){
@@ -982,6 +1026,7 @@ function doExitGame(){
 
 function showModeSelect(){
   gameRunning=false;animating=false;sel=null;
+  clearInterval(_taTimer);_taTimer=null;
   cancelSlice();
   hideAll();
   document.getElementById('hud').style.display='none';

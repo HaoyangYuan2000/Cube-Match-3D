@@ -94,7 +94,7 @@ async function _migrateProgressIfNeeded(oldUid, newUid) {
 async function linkWithGoogle() {
   if (!_auth) return { success: false, error: 'not_init' };
   if (_auth.currentUser && !_auth.currentUser.isAnonymous) {
-    return { success: true, displayName: _auth.currentUser.displayName };
+    return { success: true, displayName: _auth.currentUser.displayName, email: _auth.currentUser.email };
   }
   try {
     const GoogleAuth = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth;
@@ -129,7 +129,7 @@ async function linkWithGoogle() {
           await _updateNicknameOwnership(_uid);
         } else throw e;
       }
-      return { success: true, displayName: authResult.user.displayName };
+      return { success: true, displayName: authResult.user.displayName, email: authResult.user.email };
     }
     // Web fallback (browser testing) — use popup
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -151,7 +151,7 @@ async function linkWithGoogle() {
         await _updateNicknameOwnership(_uid);
       } else throw e;
     }
-    return { success: true, displayName: result.user.displayName };
+    return { success: true, displayName: result.user.displayName, email: result.user.email };
   } catch (e) {
     if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request' ||
         e.message === 'The user canceled the sign-in flow.') {
@@ -195,18 +195,21 @@ async function checkNickname(name) {
 async function claimNickname(name) {
   if (!_db || !_uid) return;
   try {
-    const playerDoc = await _db.collection('players').doc(_uid).get();
-    const oldNick = playerDoc.exists && playerDoc.data().nickname;
+    const oldNick = localStorage.getItem('cb3d_nickname') || null;
     const ops = [_db.collection('nicknames').doc(name).set({ uid: _uid })];
     if (oldNick && oldNick !== name) {
       ops.push(_db.collection('nicknames').doc(oldNick).delete());
-      // Migrate leaderboard records from old nickname to new nickname
-      for (const col of ['leaderboard_classic', 'leaderboard_timed']) {
-        const oldDoc = await _db.collection(col).doc(oldNick).get();
-        if (oldDoc.exists) {
-          ops.push(_db.collection(col).doc(name).set({ ...oldDoc.data(), name }));
-          ops.push(_db.collection(col).doc(oldNick).delete());
-        }
+      const [lbClassic, lbTimed] = await Promise.all([
+        _db.collection('leaderboard_classic').doc(oldNick).get(),
+        _db.collection('leaderboard_timed').doc(oldNick).get(),
+      ]);
+      if (lbClassic.exists) {
+        ops.push(_db.collection('leaderboard_classic').doc(name).set({ ...lbClassic.data(), name }));
+        ops.push(_db.collection('leaderboard_classic').doc(oldNick).delete());
+      }
+      if (lbTimed.exists) {
+        ops.push(_db.collection('leaderboard_timed').doc(name).set({ ...lbTimed.data(), name }));
+        ops.push(_db.collection('leaderboard_timed').doc(oldNick).delete());
       }
     }
     await Promise.all(ops);
@@ -262,14 +265,24 @@ async function fetchLeaderboard(mode) {
 async function fetchSuggestedPlayers(count) {
   if (!_db || !_uid) return [];
   try {
-    const myDoc = await _db.collection('players').doc(_uid).get();
+    const [myDoc, classicSnap, timedSnap] = await Promise.all([
+      _db.collection('players').doc(_uid).get(),
+      _db.collection('leaderboard_classic').orderBy('score', 'desc').limit(50).get(),
+      _db.collection('leaderboard_timed').orderBy('score', 'desc').limit(50).get(),
+    ]);
     const friends = (myDoc.exists && myDoc.data().friends) || [];
     const excluded = new Set([...friends, _uid]);
-    const snap = await _db.collection('players')
-      .orderBy('classicBest', 'desc').limit(30).get();
-    const pool = snap.docs
-      .filter(d => !excluded.has(d.id) && d.data().nickname)
-      .map(d => ({ uid: d.id, ...d.data() }));
+    const seen = new Set();
+    const pool = [];
+    for (const snap of [classicSnap, timedSnap]) {
+      for (const d of snap.docs) {
+        const { uid, name, score } = d.data();
+        if (!uid || !name || excluded.has(uid) || seen.has(uid)) continue;
+        seen.add(uid);
+        pool.push({ uid, nickname: name, score: score || 0 });
+      }
+    }
+    pool.sort((a, b) => b.score - a.score);
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -301,7 +314,6 @@ async function sendFriendRequest(toUid, toNickname) {
   try {
     const reverseDoc = await _db.collection('friendRequests').doc(reverseDocId).get();
     if (reverseDoc.exists) {
-      // They already sent us a request — auto-accept both sides
       await acceptFriendRequest(toUid, reverseDocId);
       return 'accepted';
     }
@@ -361,11 +373,11 @@ async function fetchFriendsLeaderboard(mode) {
     if (!friends.length) return [];
     const chunks = [];
     for (let i = 0; i < friends.length; i += 10) chunks.push(friends.slice(i, i + 10));
+    const snaps = await Promise.all(chunks.map(chunk =>
+      _db.collection('players').where(firebase.firestore.FieldPath.documentId(), 'in', chunk).get()
+    ));
     const players = [];
-    for (const chunk of chunks) {
-      const snap = await _db.collection('players').where(firebase.firestore.FieldPath.documentId(), 'in', chunk).get();
-      snap.docs.forEach(d => players.push({ uid: d.id, ...d.data() }));
-    }
+    snaps.forEach(snap => snap.docs.forEach(d => players.push({ uid: d.id, ...d.data() })));
     const field = mode === 'classic' ? 'classicBest' : 'taBest';
     const myData = myDoc.data() || {};
     players.push({ uid: _uid, nickname: localStorage.getItem('cb3d_nickname') || '?', [field]: myData[field] || 0 });
@@ -411,6 +423,14 @@ async function claimFriendBlockRewards() {
     }
     return totalReward;
   } catch (e) { return 0; }
+}
+
+async function loadSentRequests() {
+  if (!_db || !_uid) return [];
+  try {
+    const snap = await _db.collection('friendRequests').where('from', '==', _uid).limit(20).get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) { return []; }
 }
 
 async function getFriendRequestCount() {
