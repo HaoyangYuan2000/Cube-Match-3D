@@ -132,7 +132,13 @@ async function doGoogleLink() {
   btn.disabled = true;
   err.style.display = 'none';
   await initFirebase();
-  const result = await linkWithGoogle();
+  let result = await linkWithGoogle();
+  const retryDelays = [2000, 3000];
+  for (const delay of retryDelays) {
+    if (result.success || result.error === 'cancelled' || result.error === 'in_progress') break;
+    await new Promise(r => setTimeout(r, delay));
+    result = await linkWithGoogle();
+  }
   if (result.success) {
     hideBindPrompt();
     showToast('✅ Account linked! Progress saved.');

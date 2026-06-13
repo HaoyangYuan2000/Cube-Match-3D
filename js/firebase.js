@@ -91,20 +91,26 @@ async function _migrateProgressIfNeeded(oldUid, newUid) {
   } catch (e) {}
 }
 
+let _googleLinking = false;
+let _googleInitialized = false;
 async function linkWithGoogle() {
+  if (_googleLinking) return { success: false, error: 'in_progress' };
   if (!_auth) return { success: false, error: 'not_init' };
   if (_auth.currentUser && !_auth.currentUser.isAnonymous) {
     return { success: true, displayName: _auth.currentUser.displayName, email: _auth.currentUser.email };
   }
+  _googleLinking = true;
   try {
     const GoogleAuth = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth;
     if (GoogleAuth) {
-      // Native path (Android) — must initialize before signIn
-      await GoogleAuth.initialize({
-        clientId: '525393991475-6j5dhsua8jkor4rj3476dsqh45fvbaa6.apps.googleusercontent.com',
-        scopes: ['profile', 'email'],
-        grantOfflineAccess: true
-      });
+      if (!_googleInitialized) {
+        await GoogleAuth.initialize({
+          clientId: '525393991475-6j5dhsua8jkor4rj3476dsqh45fvbaa6.apps.googleusercontent.com',
+          scopes: ['profile', 'email'],
+          grantOfflineAccess: true
+        });
+        _googleInitialized = true;
+      }
       const googleUser = await GoogleAuth.signIn();
       const idToken = googleUser.authentication && googleUser.authentication.idToken;
       if (!idToken) return { success: false, error: 'no_token' };
@@ -158,6 +164,8 @@ async function linkWithGoogle() {
       return { success: false, error: 'cancelled' };
     }
     return { success: false, error: e.code || e.message };
+  } finally {
+    _googleLinking = false;
   }
 }
 
