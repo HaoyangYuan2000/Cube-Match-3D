@@ -58,6 +58,11 @@ const CLASSIC_MOVES = 20;
 
 function getClassicBest() { return +localStorage.getItem('cb3d_classic_best') || 0; }
 
+function setPreferredColor() {
+  preferredColor = Math.floor(Math.random() * COLORS.length);
+  document.getElementById('prefColorSwatch').style.background = COLORS[preferredColor];
+}
+
 function startClassicGame() {
   window._gameMode = 'classic';
   level = 0; score = 0; moves = CLASSIC_MOVES;
@@ -78,6 +83,7 @@ function startClassicGame() {
   document.getElementById('le').textContent = '🏆';
   document.getElementById('beLabel').textContent = 'Best';
   document.getElementById('be').textContent = getClassicBest().toLocaleString() || '0';
+  setPreferredColor();
   cancelSlice(); updateSliceBtn(); updateHUD(); resize();
 }
 
@@ -143,6 +149,7 @@ function startTimedGame() {
   document.getElementById('beLabel').textContent = 'Highest';
   document.getElementById('be').textContent = getTaBest().toLocaleString() || '0';
   document.getElementById('be').style.color = '';
+  setPreferredColor();
   cancelSlice(); updateSliceBtn(); resize();
   clearInterval(_taTimer);
   _taRemaining = TA_DURATION;

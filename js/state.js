@@ -5,6 +5,7 @@ let faceGravity=[];
 let rot=m3.id();
 let vel=[0,0];
 let score=0,level=0,moves=0;
+let preferredColor=-1;
 let sel=null;
 let gameRunning=false,animating=false,spinning=false;
 let particles=[];

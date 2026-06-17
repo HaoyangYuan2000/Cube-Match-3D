@@ -261,27 +261,29 @@ function spawnParticles(fi,r,c,noteIdx){
 function groupMatches(matches){
   const key=(fi,r,c)=>`${fi},${r},${c}`;
   const cellSet=new Set(matches.map(([fi,r,c])=>key(fi,r,c)));
+  const colorOf=(fi,r,c)=>gems[fi]?.[r]?.[c]?.color;
   const visited=new Set();
   const groups=[];
   for(const[fi,r,c]of matches){
     const k=key(fi,r,c);
     if(visited.has(k))continue;
+    const col=colorOf(fi,r,c);
     const group=[],queue=[[fi,r,c]];
     visited.add(k);
     while(queue.length){
       const[qfi,qr,qc]=queue.shift();
       group.push([qfi,qr,qc]);
-      // same-face neighbours
+      // same-face neighbours (same color only)
       for(const[nr,nc]of[[qr-1,qc],[qr+1,qc],[qr,qc-1],[qr,qc+1]]){
         if(nr<0||nr>=FC||nc<0||nc>=FC)continue;
         const nk=key(qfi,nr,nc);
-        if(cellSet.has(nk)&&!visited.has(nk)){visited.add(nk);queue.push([qfi,nr,nc]);}
+        if(cellSet.has(nk)&&!visited.has(nk)&&colorOf(qfi,nr,nc)===col){visited.add(nk);queue.push([qfi,nr,nc]);}
       }
-      // cross-face neighbours
+      // cross-face neighbours (same color only)
       for(const[nfi,nr,nc]of matches){
         const nk=key(nfi,nr,nc);
         if(visited.has(nk))continue;
-        if(areCrossFaceAdjacent({fi:qfi,r:qr,c:qc},{fi:nfi,r:nr,c:nc})){
+        if(colorOf(nfi,nr,nc)===col&&areCrossFaceAdjacent({fi:qfi,r:qr,c:qc},{fi:nfi,r:nr,c:nc})){
           visited.add(nk);queue.push([nfi,nr,nc]);
         }
       }
@@ -298,73 +300,61 @@ function majorityFace(group){
   return+Object.keys(count).reduce((a,b)=>count[a]>=count[b]?a:b);
 }
 
-// Bomb: 3x3 area around group center, including cross-face cells at edges
+// Bomb: clear all 4-directional adjacent cells (same-face + cross-face seam)
 function getBombCells(group){
-  const fi=majorityFace(group);
-  const fCells=group.filter(([f])=>f===fi);
-  const avgR=Math.round(fCells.reduce((s,[,r])=>s+r,0)/fCells.length);
-  const avgC=Math.round(fCells.reduce((s,[,,c])=>s+c,0)/fCells.length);
-  const cellSet=new Set();
-  const addCell=(f,r,c)=>cellSet.add(`${f},${r},${c}`);
-  for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
-    const nr=avgR+dr,nc=avgC+dc;
-    if(nr>=0&&nr<FC&&nc>=0&&nc<FC){
-      addCell(fi,nr,nc);
-    } else {
-      const er=Math.max(0,Math.min(FC-1,nr));
-      const ec=Math.max(0,Math.min(FC-1,nc));
-      for(const seam of CROSS_SEAMS){
-        // get this face's cells within this seam
-        const thisCells=seam.filter(s=>s.fi===fi);
-        const idxInHalf=thisCells.findIndex(s=>s.r===er&&s.c===ec);
-        if(idxInHalf<0)continue;
-        const otherFi=seam.find(s=>s.fi!==fi)?.fi;
-        if(otherFi==null)continue;
-        const otherCells=seam.filter(s=>s.fi===otherFi);
-        // mirror index: thisCells[half-1] is at the fold, maps to otherCells[0]
-        const half=thisCells.length;
-        const distFromFold=half-1-idxInHalf;
-        const mapped=otherCells[Math.min(distFromFold,otherCells.length-1)];
-        if(mapped)addCell(mapped.fi,mapped.r,mapped.c);
-      }
-    }
-  }
-  return [...cellSet].map(k=>k.split(',').map(Number));
-}
-
-// Rocket: clear entire horizontal ring (row r on 4 side faces 0-3)
-function getRocketCells(group){
   const groupSet=new Set(group.map(([f,r,c])=>`${f},${r},${c}`));
   const result=new Set();
-
-  // same-face 4-directional neighbors
   for(const [fi,r,c] of group){
+    // same-face 4-directional neighbors
     for(const [nr,nc] of [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]){
       if(nr>=0&&nr<FC&&nc>=0&&nc<FC){
         const k=`${fi},${nr},${nc}`;
         if(!groupSet.has(k)) result.add(k);
       }
     }
-  }
-
-  // cross-face seam neighbors
-  for(const seam of CROSS_SEAMS){
-    for(let i=0;i<seam.length;i++){
-      const s=seam[i];
-      const k=`${s.fi},${s.r},${s.c}`;
-      if(!groupSet.has(k)) continue; // this seam cell is in the group
-      // its seam neighbors are the cells adjacent in the seam array
+    // cross-face seam neighbors
+    for(const seam of CROSS_SEAMS){
+      const idx=seam.findIndex(s=>s.fi===fi&&s.r===r&&s.c===c);
+      if(idx<0) continue;
       for(const di of [-1,1]){
-        const j=i+di;
-        if(j<0||j>=seam.length) continue;
-        const nb=seam[j];
+        const nb=seam[idx+di];
+        if(!nb) continue;
         const nk=`${nb.fi},${nb.r},${nb.c}`;
         if(!groupSet.has(nk)) result.add(nk);
       }
     }
   }
-
   return [...result].map(k=>k.split(',').map(Number));
+}
+
+// Rocket: sweep full rows/cols across all faces for each axis arm with >=3 group cells
+function getRocketCells(group){
+  const groupSet=new Set(group.map(([f,r,c])=>`${f},${r},${c}`));
+  const result=new Set();
+
+  // count group cells per row and per col (across all faces)
+  const rowCount={}, colCount={};
+  for(const [,r,c] of group){
+    rowCount[r]=(rowCount[r]||0)+1;
+    colCount[c]=(colCount[c]||0)+1;
+  }
+
+  // rows/cols with >=3 group cells qualify as a sweep line
+  const sweepRows=Object.keys(rowCount).filter(r=>rowCount[r]>=3).map(Number);
+  const sweepCols=Object.keys(colCount).filter(c=>colCount[c]>=3).map(Number);
+
+  // sweep each qualifying row/col across the 4 side faces (0-3) only;
+  // top/bottom faces (4-5) use transformed coordinates and are not part of the belt
+  for(let fi=0;fi<4;fi++){
+    for(const r of sweepRows){
+      for(let c=0;c<FC;c++) result.add(`${fi},${r},${c}`);
+    }
+    for(const c of sweepCols){
+      for(let r=0;r<FC;r++) result.add(`${fi},${r},${c}`);
+    }
+  }
+
+  return [...result].filter(k=>!groupSet.has(k)).map(k=>k.split(',').map(Number));
 }
 
 // Bomb particle ring
@@ -422,10 +412,10 @@ function spawnRocketFX(cells){
 
 function showFloat(text,sx,sy){
   const el=document.createElement('div');
-  el.className='float-txt';el.textContent=text;
+  el.className='float-txt';el.innerHTML=text;
   const wrap=document.getElementById('cw');
   const wr=wrap.getBoundingClientRect(),cr=canvas.getBoundingClientRect();
-  el.style.left=(cr.left-wr.left+sx-24)+'px';
+  el.style.left=(cr.left-wr.left+sx)+'px';
   el.style.top=(cr.top-wr.top+sy-12)+'px';
   wrap.appendChild(el);setTimeout(()=>el.remove(),950);
 }
@@ -458,7 +448,9 @@ function processMatches(matches,chain){
     .filter(([fi,r,c])=>gems[fi]?.[r]?.[c]!=null);
 
   const n=allMatches.length;
-  const gained=Math.round(n*10*(chain+1)*Math.pow(1.15,chain));
+  const base=10*(chain+1)*Math.pow(1.15,chain);
+  const prefCount=allMatches.filter(([fi,r,c])=>gems[fi][r][c].color===preferredColor).length;
+  const gained=Math.round((n-prefCount)*base + prefCount*base*1.5);
   score+=gained;
   shakeAmt=Math.min(18, 4+chain*4+(hasBomb?4:0)+(hasRocket?6:0));
   let avgSX=0,avgSY=0;
@@ -496,8 +488,20 @@ function processMatches(matches,chain){
     localStorage.setItem('cb3d_blocks',totalBlocksElim);
     updateCity();
 
-    const label=hasRocket?`🚀+${gained}`:hasBomb?`💣+${gained}`:`+${gained}${chain>0?'🔥'.repeat(Math.min(chain,3)):''}`;
-    showFloat(label,avgSX,avgSY);
+    const scoreStr=hasRocket?`🚀 +${gained}`:hasBomb?`💣 +${gained}`:`+${gained}`;
+    let word;
+    if(hasRocket)word='BLAST!';
+    else if(hasBomb)word='BOOM!';
+    else if(chain>=4)word='UNREAL!';
+    else if(chain>=3)word='INCREDIBLE!';
+    else if(chain>=2)word='AMAZING!';
+    else if(chain>=1)word='GREAT!';
+    else if(prefCount>0)word='HOT!';
+    else if(n>=5)word='AWESOME!';
+    else word='NICE!';
+    const stripBot=document.getElementById('infoStrip').getBoundingClientRect().bottom;
+    const canvasTop=canvas.getBoundingClientRect().top;
+    showFloat(`<span class="float-word">${word}</span><br>${scoreStr}`,cx,stripBot-canvasTop+70);
 
     // 缩小到消失动画
     const dur=18;let t=0;
@@ -518,6 +522,10 @@ function processMatches(matches,chain){
           updateHUD();
           const next=findAllMatches();
           if(next.length&&chain<6){processMatches(next,chain+1);return;}
+          if(!hasAnyValidMove()){
+            shuffleBoard();
+            showFloat('🔀 Reshuffled!',cx,cy);
+          }
           animating=false;_taUnfreeze();checkEnd();draw();
         });
       }
@@ -545,6 +553,73 @@ function processMatches(matches,chain){
     requestAnimationFrame(flashStep);
   } else {
     doElim();
+  }
+}
+
+// ── Dead-end detection & shuffle ──
+
+function checkCellMatch(fi,r,c){
+  const color=gems[fi][r][c].color;
+
+  // row
+  let run=1;
+  for(let dc=1;c+dc<FC;dc++){if(gems[fi][r][c+dc]?.color===color)run++;else break;}
+  for(let dc=1;dc<=c;dc++){if(gems[fi][r][c-dc]?.color===color)run++;else break;}
+  if(run>=3)return true;
+
+  // col
+  run=1;
+  for(let dr=1;r+dr<FC;dr++){if(gems[fi][r+dr]?.[c]?.color===color)run++;else break;}
+  for(let dr=1;dr<=r;dr++){if(gems[fi][r-dr]?.[c]?.color===color)run++;else break;}
+  if(run>=3)return true;
+
+  // cross-seams
+  for(const seam of CROSS_SEAMS){
+    const idx=seam.findIndex(s=>s.fi===fi&&s.r===r&&s.c===c);
+    if(idx===-1)continue;
+    const gc=i=>{const s=seam[i];return s?gems[s.fi]?.[s.r]?.[s.c]?.color:undefined;};
+    run=1;
+    for(let di=1;idx+di<seam.length;di++){if(gc(idx+di)===color)run++;else break;}
+    for(let di=1;idx-di>=0;di++){if(gc(idx-di)===color)run++;else break;}
+    if(run>=3)return true;
+  }
+  return false;
+}
+
+function wouldMatch(fi1,r1,c1,fi2,r2,c2){
+  [gems[fi1][r1][c1],gems[fi2][r2][c2]]=[gems[fi2][r2][c2],gems[fi1][r1][c1]];
+  const ok=checkCellMatch(fi1,r1,c1)||checkCellMatch(fi2,r2,c2);
+  [gems[fi1][r1][c1],gems[fi2][r2][c2]]=[gems[fi2][r2][c2],gems[fi1][r1][c1]];
+  return ok;
+}
+
+function hasAnyValidMove(){
+  for(let fi=0;fi<6;fi++){
+    for(let r=0;r<FC;r++){
+      for(let c=0;c<FC;c++){
+        if(c+1<FC&&wouldMatch(fi,r,c,fi,r,c+1))return true;
+        if(r+1<FC&&wouldMatch(fi,r,c,fi,r+1,c))return true;
+      }
+    }
+  }
+  for(const seam of CROSS_SEAMS){
+    const a=seam[2],b=seam[3];
+    if(a&&b&&gems[a.fi]?.[a.r]?.[a.c]&&gems[b.fi]?.[b.r]?.[b.c]){
+      if(wouldMatch(a.fi,a.r,a.c,b.fi,b.r,b.c))return true;
+    }
+  }
+  return false;
+}
+
+function shuffleBoard(){
+  for(let fi=0;fi<6;fi++)
+    for(let r=0;r<FC;r++)
+      for(let c=0;c<FC;c++)
+        gems[fi][r][c]=mkGem(safeColor(fi,r,c));
+  for(let pass=0;pass<20;pass++){
+    const all=findAllMatches();
+    if(!all.length)break;
+    all.forEach(([fi,r,c])=>{gems[fi][r][c]=mkGem(safeColor(fi,r,c));});
   }
 }
 
