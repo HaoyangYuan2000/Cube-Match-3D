@@ -158,13 +158,21 @@ async function doGoogleLink() {
     const today = new Date().toDateString();
     const googleBase = progress && progress.tools && progress.tools.slice != null ? progress.tools.slice : 0;
     const localSliceDay = localStorage.getItem('cb3d_sliceday');
-    const alreadyClaimed = (progress && progress.sliceDay === today) || localSliceDay === today;
+    let alreadyClaimed;
+    if (result.isNewAccount) {
+      // Anonymous upgraded to Google (same UID) — include localStorage in already-claimed check
+      alreadyClaimed = (progress && progress.sliceDay === today) || localSliceDay === today;
+    } else {
+      // Returning Google account — only trust Google cloud data, not anonymous session's localStorage
+      alreadyClaimed = progress && progress.sliceDay === today;
+    }
+    // always stamp localStorage so onPlay() (stale anonymous _progressPromise) doesn't double-grant
+    localStorage.setItem('cb3d_sliceday', today);
     if (alreadyClaimed) {
       sliceUses = googleBase;
       window._dailySliceBonus = false;
     } else {
       sliceUses = googleBase + 6;
-      localStorage.setItem('cb3d_sliceday', today);
       window._dailySliceBonus = true;
       saveProgress('tools', { slice: sliceUses }); saveProgress('sliceDay', today);
     }

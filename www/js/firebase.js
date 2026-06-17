@@ -117,6 +117,7 @@ async function linkWithGoogle() {
       const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
       let authResult;
       const oldDeviceId = _uid; // save anonymous UID before switching
+      let isNewAccount = true;
       try {
         if (_auth.currentUser && _auth.currentUser.isAnonymous) {
           // Upgrade anonymous → Google, UID stays the same, no migration needed
@@ -131,16 +132,18 @@ async function linkWithGoogle() {
           // Google account already exists — sign in and migrate if needed
           authResult = await _auth.signInWithCredential(credential);
           _uid = authResult.user.uid;
+          isNewAccount = false;
           await _migrateProgressIfNeeded(oldDeviceId, _uid);
           await _updateNicknameOwnership(_uid);
         } else throw e;
       }
-      return { success: true, displayName: authResult.user.displayName, email: authResult.user.email };
+      return { success: true, isNewAccount, displayName: authResult.user.displayName, email: authResult.user.email };
     }
     // Web fallback (browser testing) — use popup
     const provider = new firebase.auth.GoogleAuthProvider();
     const oldDeviceId = _uid;
     let result;
+    let isNewAccount = true;
     try {
       if (_auth.currentUser && _auth.currentUser.isAnonymous) {
         result = await _auth.currentUser.linkWithPopup(provider);
@@ -153,11 +156,12 @@ async function linkWithGoogle() {
       if (e.code === 'auth/credential-already-in-use') {
         result = await _auth.signInWithPopup(provider);
         _uid = result.user.uid;
+        isNewAccount = false;
         await _migrateProgressIfNeeded(oldDeviceId, _uid);
         await _updateNicknameOwnership(_uid);
       } else throw e;
     }
-    return { success: true, displayName: result.user.displayName, email: result.user.email };
+    return { success: true, isNewAccount, displayName: result.user.displayName, email: result.user.email };
   } catch (e) {
     if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request' ||
         e.message === 'The user canceled the sign-in flow.') {

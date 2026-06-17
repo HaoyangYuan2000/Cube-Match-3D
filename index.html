@@ -56,11 +56,12 @@
     <!-- Slice tool floating button -->
     <button class="tool-btn" id="sliceBtn" onclick="startSlice()" style="display:none;position:absolute;top:8px;right:8px;z-index:10">
       <div class="tool-icon" id="sliceIcon">
-        <div class="rc-face">
-          <div class="rc-cell" style="background:#ef4444"></div><div class="rc-cell" style="background:#3b82f6"></div><div class="rc-cell" style="background:#22c55e"></div>
-          <div class="rc-cell" style="background:#f59e0b"></div><div class="rc-cell" style="background:#eeeeff"></div><div class="rc-cell" style="background:#a855f7"></div>
-          <div class="rc-cell" style="background:#3b82f6"></div><div class="rc-cell" style="background:#ef4444"></div><div class="rc-cell" style="background:#f59e0b"></div>
-        </div>
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10.3 23.3 A10 10 0 0 1 10.3 4.7" stroke="#7c6fff" stroke-width="2.5" stroke-linecap="round"/>
+          <polyline points="8,2.5 10.3,4.7 8,6.9" stroke="#7c6fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M17.7 4.7 A10 10 0 0 1 17.7 23.3" stroke="#ff5fa0" stroke-width="2.5" stroke-linecap="round"/>
+          <polyline points="20,21.1 17.7,23.3 20,25.5" stroke="#ff5fa0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
       </div>
       <span class="tool-label" id="sliceLabel">Slice ×6</span>
     </button>
