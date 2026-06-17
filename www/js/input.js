@@ -37,13 +37,16 @@ canvas.addEventListener('mousemove', e=>{if(pDown)onMove(e.offsetX,e.offsetY);})
 canvas.addEventListener('mouseup',   e=>{onUp(e.offsetX,e.offsetY);});
 canvas.addEventListener('mouseleave',e=>{if(pDown){vel=[0,0];pDown=false;}});
 
-let tfAngle=null;
+let tfAngle=null,tfMidX=0,tfMidY=0;
 
 function touchAngle(touches){
   return Math.atan2(
     touches[1].clientY-touches[0].clientY,
     touches[1].clientX-touches[0].clientX
   );
+}
+function touchMid(touches){
+  return[(touches[0].clientX+touches[1].clientX)/2,(touches[0].clientY+touches[1].clientY)/2];
 }
 
 canvas.addEventListener('touchstart',e=>{
@@ -52,6 +55,7 @@ canvas.addEventListener('touchstart',e=>{
   if(e.touches.length>=2){
     pDown=false;spinning=false;
     tfAngle=touchAngle(e.touches);
+    [tfMidX,tfMidY]=touchMid(e.touches);
   } else {
     tfAngle=null;
     const t=e.touches[0];
@@ -66,7 +70,16 @@ canvas.addEventListener('touchmove',e=>{
     const a=touchAngle(e.touches);
     const delta=a-tfAngle;
     tfAngle=a;
-    rot=m3.mul(m3.rotZ(-delta),rot);
+    // twist: angle change → Z rotation
+    if(Math.abs(delta)>0.001) rot=m3.mul(m3.rotZ(-delta),rot);
+    // pan: midpoint movement → cube rotation (same as single finger)
+    const [mx,my]=touchMid(e.touches);
+    const dmx=mx-tfMidX, dmy=my-tfMidY;
+    tfMidX=mx; tfMidY=my;
+    if(Math.hypot(dmx,dmy)>0.5){
+      const speed=0.006;
+      rot=m3.mul(m3.rotY(-dmx*speed),m3.mul(m3.rotX(-dmy*speed),rot));
+    }
     draw();
   } else if(e.touches.length===1&&tfAngle===null){
     const t=e.touches[0];
