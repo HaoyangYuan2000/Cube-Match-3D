@@ -331,26 +331,44 @@ function getBombCells(group){
 function getRocketCells(group){
   const groupSet=new Set(group.map(([f,r,c])=>`${f},${r},${c}`));
   const result=new Set();
+  const N=FC;
 
-  // count group cells per row and per col (across all faces)
+  // count only side-face (0-3) cells; top/bottom (4-5) have rotated coords and would corrupt the count
   const rowCount={}, colCount={};
-  for(const [,r,c] of group){
+  for(const [fi,r,c] of group){
+    if(fi>=4) continue;
     rowCount[r]=(rowCount[r]||0)+1;
     colCount[c]=(colCount[c]||0)+1;
   }
 
-  // rows/cols with >=3 group cells qualify as a sweep line
   const sweepRows=Object.keys(rowCount).filter(r=>rowCount[r]>=3).map(Number);
   const sweepCols=Object.keys(colCount).filter(c=>colCount[c]>=3).map(Number);
 
-  // sweep each qualifying row/col across the 4 side faces (0-3) only;
-  // top/bottom faces (4-5) use transformed coordinates and are not part of the belt
-  for(let fi=0;fi<4;fi++){
+  // Horizontal arm: sweep the row as a belt across all 4 side faces
+  for(let sweepFi=0;sweepFi<4;sweepFi++){
     for(const r of sweepRows){
-      for(let c=0;c<FC;c++) result.add(`${fi},${r},${c}`);
+      for(let c=0;c<N;c++) result.add(`${sweepFi},${r},${c}`);
     }
-    for(const c of sweepCols){
-      for(let r=0;r<FC;r++) result.add(`${fi},${r},${c}`);
+  }
+
+  // Vertical arm: pierce through cube — current face + opposite + top + bottom
+  if(sweepCols.length>0){
+    const faceCount={};
+    for(const [fi] of group) if(fi<4) faceCount[fi]=(faceCount[fi]||0)+1;
+    const fi=Number(Object.keys(faceCount).reduce((a,b)=>faceCount[a]>faceCount[b]?a:b));
+    const oppFi=(fi+2)%4;
+    for(const col of sweepCols){
+      const oppCol=N-1-col;
+      for(let r=0;r<N;r++) result.add(`${fi},${r},${col}`);
+      for(let r=0;r<N;r++) result.add(`${oppFi},${r},${oppCol}`);
+      if(fi===0||fi===2){
+        const tc=fi===0?col:N-1-col;
+        for(let r=0;r<N;r++){ result.add(`4,${r},${tc}`); result.add(`5,${r},${tc}`); }
+      } else {
+        const topRow=fi===1?N-1-col:col;
+        const botRow=fi===1?col:N-1-col;
+        for(let c=0;c<N;c++){ result.add(`4,${topRow},${c}`); result.add(`5,${botRow},${c}`); }
+      }
     }
   }
 
@@ -516,9 +534,9 @@ function processMatches(matches,chain){
     const rocketSet=new Set(rocketCells.map(([fi,r,c])=>`${fi},${r},${c}`));
     const gemDelay={};
     if(hasRocket&&rocketCells.length){
-      // 判断扫射方向：看sweepRows还是sweepCols主导
+      // 判断扫射方向：只看侧面格子，top/bottom坐标不同会污染计数
       const rowCount={},colCount={};
-      for(const[,r,c]of matches){rowCount[r]=(rowCount[r]||0)+1;colCount[c]=(colCount[c]||0)+1;}
+      for(const[fi,r,c]of matches){if(fi>=4)continue;rowCount[r]=(rowCount[r]||0)+1;colCount[c]=(colCount[c]||0)+1;}
       const sweepRows=Object.keys(rowCount).filter(r=>rowCount[r]>=3).map(Number);
       const horizontal=sweepRows.length>0;
       // 按扫射轴排序，每个位置间隔2帧
