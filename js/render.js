@@ -241,10 +241,7 @@ function drawParticles(){
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.save();
-  if(shakeAmt>0.5){
-    ctx.translate((Math.random()-.5)*shakeAmt,(Math.random()-.5)*shakeAmt);
-    shakeAmt*=0.75;
-  }
+  shakeAmt=0;
 
   const visible=FACES.map(f=>{
     const rn=m3.app(rot,f.n);

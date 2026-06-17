@@ -97,22 +97,46 @@ body{
 .btn-s{background:var(--panel);color:var(--text);border:1px solid rgba(124,111,255,.4);}
 .float-txt{
   position:absolute;pointer-events:none;z-index:30;
-  font-size:42px;font-weight:900;color:var(--gold);
-  text-shadow:0 0 16px rgba(255,215,0,1),0 0 40px rgba(255,180,0,.8),0 2px 0 rgba(0,0,0,.5);
-  animation:fup 1.3s cubic-bezier(.2,1.4,.4,1) forwards;white-space:pre-line;
-  text-align:center;line-height:0.75;letter-spacing:1px;
+  font-size:32px;font-weight:900;color:var(--gold);
+  text-shadow:0 0 12px rgba(255,215,0,1),0 0 28px rgba(255,180,0,.8),0 2px 0 rgba(0,0,0,.5);
+  animation:fup 1.1s ease-out forwards;white-space:pre-line;
+  text-align:center;line-height:0.9;letter-spacing:1px;
 }
 .float-txt .float-word{
-  display:block;font-size:28px;color:var(--gold);
-  text-shadow:0 0 16px rgba(255,215,0,1),0 0 40px rgba(255,180,0,.8),0 2px 0 rgba(0,0,0,.5);
-  letter-spacing:4px;text-transform:uppercase;
+  display:block;font-size:24px;color:var(--gold);
+  text-shadow:0 0 12px rgba(255,215,0,1),0 0 28px rgba(255,180,0,.8),0 2px 0 rgba(0,0,0,.5);
+  letter-spacing:3px;text-transform:uppercase;
 }
+@keyframes shakeNormal{
+  0%,100%{transform:translate(0,0)}
+  25%{transform:translate(-2px,-1px)}
+  50%{transform:translate(2px,1px)}
+  75%{transform:translate(-1px,1px)}
+}
+@keyframes shakeBomb{
+  0%,100%{transform:translate(0,0)}
+  20%{transform:translate(-3px,-2px)}
+  40%{transform:translate(3px,2px)}
+  60%{transform:translate(-2px,1px)}
+  80%{transform:translate(2px,-1px)}
+}
+@keyframes shakeRocket{
+  0%,100%{transform:translate(0,0)}
+  15%{transform:translate(-3px,-2px)}
+  30%{transform:translate(3px,2px)}
+  50%{transform:translate(-2px,2px)}
+  70%{transform:translate(2px,-2px)}
+  85%{transform:translate(-1px,1px)}
+}
+.shake-normal{animation:shakeNormal 0.25s ease-out;}
+.shake-bomb{animation:shakeBomb 0.25s ease-out;}
+.shake-rocket{animation:shakeRocket 0.25s ease-out;}
 @keyframes fup{
-  0%  {opacity:0;transform:translateX(-50%) translateY(10px) scale(0.6)}
-  12% {opacity:1;transform:translateX(-50%) translateY(-4px) scale(1.25)}
-  25% {transform:translateX(-50%) translateY(0px) scale(1.1)}
-  80% {opacity:1;transform:translateX(-50%) translateY(-30px) scale(1.05)}
-  100%{opacity:0;transform:translateX(-50%) translateY(-80px) scale(0.95)}
+  0%  {opacity:0;transform:translateX(-50%) scale(0.7)}
+  15% {opacity:1;transform:translateX(-50%) scale(1.15)}
+  30% {transform:translateX(-50%) scale(1.0)}
+  80% {opacity:1;transform:translateX(-50%) scale(1.0)}
+  100%{opacity:0;transform:translateX(-50%) scale(0.95)}
 }
 #iad.hidden{display:none;}
 #adcls{padding:9px 24px;background:var(--panel);border:1px solid var(--accent);border-radius:99px;color:var(--text);font-size:13px;cursor:pointer;display:none;}

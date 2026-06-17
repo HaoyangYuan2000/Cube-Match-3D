@@ -157,7 +157,9 @@ async function doGoogleLink() {
     }
     const today = new Date().toDateString();
     const googleBase = progress && progress.tools && progress.tools.slice != null ? progress.tools.slice : 0;
-    if (progress && progress.sliceDay === today) {
+    const localSliceDay = localStorage.getItem('cb3d_sliceday');
+    const alreadyClaimed = (progress && progress.sliceDay === today) || localSliceDay === today;
+    if (alreadyClaimed) {
       sliceUses = googleBase;
       window._dailySliceBonus = false;
     } else {

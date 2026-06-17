@@ -411,9 +411,10 @@ function spawnRocketFX(cells){
 }
 
 function showFloat(text,sx,sy){
+  const wrap=document.getElementById('cw');
+  wrap.querySelectorAll('.float-txt').forEach(e=>e.remove());
   const el=document.createElement('div');
   el.className='float-txt';el.innerHTML=text;
-  const wrap=document.getElementById('cw');
   const wr=wrap.getBoundingClientRect(),cr=canvas.getBoundingClientRect();
   el.style.left=(cr.left-wr.left+sx)+'px';
   el.style.top=(cr.top-wr.top+sy-12)+'px';
@@ -452,7 +453,7 @@ function processMatches(matches,chain){
   const prefCount=allMatches.filter(([fi,r,c])=>gems[fi][r][c].color===preferredColor).length;
   const gained=Math.round((n-prefCount)*base + prefCount*base*1.5);
   score+=gained;
-  shakeAmt=Math.min(18, 4+chain*4+(hasBomb?4:0)+(hasRocket?6:0));
+  shakeAmt=Math.min(28, 10+chain*5+(hasBomb?6:0)+(hasRocket?10:0));
   let avgSX=0,avgSY=0;
   allMatches.forEach(([fi,r,c])=>{
     const f=FACES[fi];
@@ -483,6 +484,13 @@ function processMatches(matches,chain){
     if(hasBomb){spawnBombFX(bombCX,bombCY);playBoom(bombCX,canvas.width);vibrate([30,20,60]);}
     if(hasRocket){spawnRocketFX(rocketCells);playRocket(avgSX,canvas.width);vibrate([15,10,15,10,40]);}
 
+    // Screen shake
+    const cw=document.getElementById('cw');
+    const shakeCls=hasRocket?'shake-rocket':hasBomb?'shake-bomb':'shake-normal';
+    cw.classList.remove('shake-normal','shake-bomb','shake-rocket');
+    void cw.offsetWidth;
+    cw.classList.add(shakeCls);
+
     // City building materials
     totalBlocksElim+=allMatches.length;
     localStorage.setItem('cb3d_blocks',totalBlocksElim);
@@ -503,13 +511,39 @@ function processMatches(matches,chain){
     const canvasTop=canvas.getBoundingClientRect().top;
     showFloat(`<span class="float-word">${word}</span><br>${scoreStr}`,cx,stripBot-canvasTop+70);
 
-    // 缩小到消失动画
-    const dur=18;let t=0;
+    // 消除动画：火箭扩展格按列顺序依次消失，其余格同时消失
+    const matchSet=new Set(matches.map(([fi,r,c])=>`${fi},${r},${c}`));
+    const rocketSet=new Set(rocketCells.map(([fi,r,c])=>`${fi},${r},${c}`));
+    const gemDelay={};
+    if(hasRocket&&rocketCells.length){
+      // 判断扫射方向：看sweepRows还是sweepCols主导
+      const rowCount={},colCount={};
+      for(const[,r,c]of matches){rowCount[r]=(rowCount[r]||0)+1;colCount[c]=(colCount[c]||0)+1;}
+      const sweepRows=Object.keys(rowCount).filter(r=>rowCount[r]>=3).map(Number);
+      const horizontal=sweepRows.length>0;
+      // 按扫射轴排序，每个位置间隔2帧
+      const STEP=4;
+      if(horizontal){
+        const cols=[...new Set(rocketCells.map(([,r,c])=>c))].sort((a,b)=>a-b);
+        cols.forEach((col,i)=>{
+          rocketCells.filter(([,r,c])=>c===col).forEach(([fi,r,c])=>{gemDelay[`${fi},${r},${c}`]=i*STEP;});
+        });
+      } else {
+        const rows=[...new Set(rocketCells.map(([,r])=>r))].sort((a,b)=>a-b);
+        rows.forEach((row,i)=>{
+          rocketCells.filter(([,r])=>r===row).forEach(([fi,r,c])=>{gemDelay[`${fi},${r},${c}`]=i*STEP;});
+        });
+      }
+    }
+    const maxDelay=Object.values(gemDelay).reduce((m,v)=>Math.max(m,v),0);
+    const dur=18+maxDelay;let t=0;
     function elimStep(){
       t++;
-      const p=Math.min(t/14,1);
       allMatches.forEach(([fi,r,c])=>{
         const g=gems[fi]?.[r]?.[c];if(!g)return;
+        const delay=gemDelay[`${fi},${r},${c}`]||0;
+        const et=Math.max(0,t-delay);
+        const p=Math.min(et/14,1);
         g.scale=1-p;
         g.alpha=1-p;
       });
