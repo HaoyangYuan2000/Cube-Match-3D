@@ -28,6 +28,7 @@ async function saveNickname() {
   }
   await claimNickname(val);
   localStorage.setItem('cb3d_nickname', val);
+  logEvent('nickname_set');
   document.getElementById('nickOv').classList.add('hidden');
   if (window._pendingAfterNick) { const fn = window._pendingAfterNick; window._pendingAfterNick = null; fn(); }
 }
