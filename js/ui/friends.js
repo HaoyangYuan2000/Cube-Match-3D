@@ -97,12 +97,14 @@ async function doFriendSearch() {
 async function doSendRequest(uid, nickname, btn) {
   btn.disabled = true; btn.textContent = '...';
   const result = await sendFriendRequest(uid, nickname);
+  logEvent('friend_request_sent', { result });
   btn.textContent = result === 'accepted' ? 'Friends!' : 'Sent!';
 }
 
 async function doAccept(fromUid, docId, btn) {
   btn.closest('[data-id]').style.opacity = '0.4';
   await acceptFriendRequest(fromUid, docId);
+  logEvent('friend_request_accepted');
   await _loadPendingRequests();
   await _loadFriendsList();
 }
@@ -110,6 +112,7 @@ async function doAccept(fromUid, docId, btn) {
 async function doReject(docId, btn) {
   btn.closest('[data-id]').style.opacity = '0.4';
   await rejectFriendRequest(docId);
+  logEvent('friend_request_rejected');
   await _loadPendingRequests();
 }
 
@@ -133,6 +136,7 @@ async function _loadFriendsList() {
 async function doRemoveFriend(uid, name, btn) {
   if (!confirm('Remove ' + name + ' from friends?')) return;
   btn.disabled = true;
+  logEvent('friend_removed');
   await removeFriend(uid);
   await _loadFriendsList();
 }
