@@ -50,7 +50,8 @@ function showModeSelect() {
 
 function selectMode(mode) {
   window._gameMode = mode;
-  if (mode === 'classic') { startClassicGame(); } else { startTimedGame(); }
+  if (mode === 'classic') { startClassicGame(); }
+  else { startTimedGame(); }
 }
 
 // ── Classic ──
@@ -191,6 +192,7 @@ async function endTimedGame() {
   _incrementGamesPlayed();
   if (_shouldShowBindPrompt()) setTimeout(showBindPrompt, 1800);
 }
+
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { _taFreeze(); } else { _taUnfreeze(); }

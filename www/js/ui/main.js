@@ -31,6 +31,7 @@ async function onPlay() {
     if (progress.tools && progress.tools.slice != null) sliceUses = progress.tools.slice;
     if (progress.classicBest > getClassicBest()) localStorage.setItem('cb3d_classic_best', progress.classicBest);
     if (progress.taBest > getTaBest()) localStorage.setItem('cb3d_ta_best', progress.taBest);
+
     if (progress.blocksElim > totalBlocksElim) {
       totalBlocksElim = progress.blocksElim;
       localStorage.setItem('cb3d_blocks', totalBlocksElim);

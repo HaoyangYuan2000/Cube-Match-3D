@@ -67,6 +67,7 @@ async function _autoAssignNickname(displayName) {
 
 // ── Google account binding ──
 let _bindShownThisSession = false;
+const BIND_PROMPT_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 
 function _incrementGamesPlayed() {
   const n = (+localStorage.getItem('cb3d_gp') || 0) + 1;
@@ -78,7 +79,9 @@ function _shouldShowBindPrompt() {
   if (_bindShownThisSession) return false;
   if (!isAnonymousUser()) return false;
   const n = +localStorage.getItem('cb3d_gp') || 0;
-  return n >= 3;
+  if (n < 3) return false;
+  const lastShown = +localStorage.getItem('cb3d_bind_shown_at') || 0;
+  return Date.now() - lastShown > BIND_PROMPT_COOLDOWN_MS;
 }
 
 function onAccountBtn() {
@@ -104,6 +107,7 @@ function onAccountBtn() {
 
 function showBindPrompt() {
   _bindShownThisSession = true;
+  localStorage.setItem('cb3d_bind_shown_at', Date.now());
   document.getElementById('bindOvTitle').textContent = 'Save Your Progress';
   document.getElementById('bindOvDesc').textContent = 'Link your Google account to sync progress across devices and never lose your score.';
   document.getElementById('bindGoogleBtn').style.display = '';
@@ -111,11 +115,15 @@ function showBindPrompt() {
   document.getElementById('bindError').style.display = 'none';
   document.getElementById('changeNameBtn').style.display = 'none';
   document.getElementById('signOutBtn').style.display = 'none';
+  const backBtn = document.getElementById('backBtn');
+  if (backBtn) backBtn.style.visibility = 'hidden';
   document.getElementById('bindOv').classList.remove('hidden');
 }
 
 function hideBindPrompt() {
   document.getElementById('bindOv').classList.add('hidden');
+  const backBtn = document.getElementById('backBtn');
+  if (backBtn) backBtn.style.visibility = '';
 }
 
 async function doSignOut() {
@@ -154,6 +162,7 @@ async function doGoogleLink() {
       }
       if (progress.classicBest > getClassicBest()) localStorage.setItem('cb3d_classic_best', progress.classicBest);
       if (progress.taBest > getTaBest()) localStorage.setItem('cb3d_ta_best', progress.taBest);
+
     }
     const today = new Date().toDateString();
     const googleBase = progress && progress.tools && progress.tools.slice != null ? progress.tools.slice : 0;

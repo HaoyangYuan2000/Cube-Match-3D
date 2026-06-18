@@ -84,6 +84,7 @@ async function _migrateProgressIfNeeded(oldUid, newUid) {
     const merged = {};
     if ((o.classicBest || 0) > (n.classicBest || 0)) merged.classicBest = o.classicBest;
     if ((o.taBest || 0) > (n.taBest || 0)) merged.taBest = o.taBest;
+
     if ((o.blocksElim || 0) > (n.blocksElim || 0)) merged.blocksElim = o.blocksElim;
     if (Object.keys(merged).length > 0) {
       await _db.collection('players').doc(newUid).set(merged, { merge: true });
@@ -228,6 +229,7 @@ async function claimNickname(name) {
     await saveProgress('nickname', name);
     delete _lbCache['classic'];
     delete _lbCache['timed'];
+
   } catch (e) {}
 }
 

@@ -25,6 +25,7 @@ async function showLeaderboard() {
   _lbTab = 'classic';
   document.getElementById('lbTabClassic').classList.add('active');
   document.getElementById('lbTabTimed').classList.remove('active');
+
   document.getElementById('lbTabFriends').classList.remove('active');
   await initFirebase();
   await loadLbTab('classic');
@@ -39,6 +40,7 @@ async function switchLbTab(tab) {
   _lbTab = tab;
   document.getElementById('lbTabClassic').classList.toggle('active', tab === 'classic');
   document.getElementById('lbTabTimed').classList.toggle('active', tab === 'timed');
+
   document.getElementById('lbTabFriends').classList.toggle('active', tab === 'friends');
   await loadLbTab(tab);
 }
