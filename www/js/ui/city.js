@@ -48,6 +48,7 @@ function updateCity() {
       el.setAttribute('opacity', '1');
       el.classList.add('rising');
       setTimeout(() => el.classList.remove('rising'), 800);
+      logEvent('city_stage_unlocked', { stage: name, blocks: n });
       if (gameRunning) _pendingCityToasts.push(name);
     } else if (unlocked) {
       el.setAttribute('opacity', '1');

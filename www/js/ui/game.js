@@ -50,6 +50,7 @@ function showModeSelect() {
 
 function selectMode(mode) {
   window._gameMode = mode;
+  logEvent('mode_selected', { mode });
   if (mode === 'classic') { startClassicGame(); }
   else { startTimedGame(); }
 }
@@ -66,6 +67,7 @@ function setPreferredColor() {
 
 function startClassicGame() {
   window._gameMode = 'classic';
+  logEvent('game_start', { mode: 'classic' });
   level = 0; score = 0; moves = CLASSIC_MOVES;
   rot = m3.mul(m3.rotX(-0.42), m3.mul(m3.rotY(0.55), m3.id()));
   faceGravity = FACES.map(() => ({ axis: 'row', dir: 1 }));
@@ -91,6 +93,7 @@ function startClassicGame() {
 async function endClassicGame() {
   gameRunning = false;
   const best = Math.max(score, getClassicBest());
+  logEvent('game_end', { mode: 'classic', score, is_new_best: score >= getClassicBest() && score > 0 });
   localStorage.setItem('cb3d_classic_best', best);
   const finalScore = score;
   saveProgress('blocksElim', totalBlocksElim);
@@ -129,6 +132,7 @@ function getTaBest() { return +localStorage.getItem('cb3d_ta_best') || 0; }
 
 function startTimedGame() {
   window._gameMode = 'timed';
+  logEvent('game_start', { mode: 'timed' });
   level = 0; score = 0;
   rot = m3.mul(m3.rotX(-0.42), m3.mul(m3.rotY(0.55), m3.id()));
   faceGravity = FACES.map(() => ({ axis: 'row', dir: 1 }));
@@ -176,6 +180,7 @@ async function endTimedGame() {
   _taPausedAt = null;
   document.getElementById('timerPill').classList.remove('frozen', 'urgent');
   const best = Math.max(score, getTaBest());
+  logEvent('game_end', { mode: 'timed', score, is_new_best: score >= getTaBest() && score > 0 });
   localStorage.setItem('cb3d_ta_best', best);
   document.getElementById('timerPill').textContent = '0:00';
   const finalScore = score;

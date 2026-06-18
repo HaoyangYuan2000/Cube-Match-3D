@@ -127,6 +127,7 @@ function hideBindPrompt() {
 }
 
 async function doSignOut() {
+  logEvent('sign_out');
   await signOutUser();
   hideBindPrompt();
   localStorage.removeItem('cb3d_nickname');
@@ -148,6 +149,7 @@ async function doGoogleLink() {
     result = await linkWithGoogle();
   }
   if (result.success) {
+    logEvent('google_link_success', { is_new_account: !!result.isNewAccount });
     hideBindPrompt();
     showToast('✅ Account linked! Progress saved.');
     const hadNickname = getNickname();

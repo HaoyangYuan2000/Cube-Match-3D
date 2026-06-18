@@ -6,13 +6,19 @@ const firebaseConfig = {
   projectId: "cube-match-3d-nextai",
   storageBucket: "cube-match-3d-nextai.firebasestorage.app",
   messagingSenderId: "525393991475",
-  appId: "1:525393991475:android:54cff6749d84265b801046"
+  appId: "1:525393991475:web:a8ab46d970a126c7801046",
+  measurementId: "G-8V7ZLVK8K3"
 };
 
 let _db = null;
 let _auth = null;
+let _analytics = null;
 let _uid = null;
 let _initPromise = null;
+
+function logEvent(name, params) {
+  try { if (_analytics) _analytics.logEvent(name, params || {}); } catch (e) {}
+}
 
 function initFirebase() {
   if (_initPromise) return _initPromise;
@@ -20,6 +26,7 @@ function initFirebase() {
     firebase.initializeApp(firebaseConfig);
     _db = firebase.firestore();
     _auth = firebase.auth();
+    try { _analytics = firebase.analytics(); } catch (e) {}
 
     // Wait for auth state, sign in anonymously if no user
     await new Promise((resolve) => {

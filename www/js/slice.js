@@ -64,6 +64,7 @@ function applySlice(cw){
   if(sliceFace<0)return;
   if(sliceUses<=0){cancelSlice();return;}
   sliceUses--;
+  logEvent('slice_used', { mode: window._gameMode, remaining: sliceUses });
   updateSliceBtn();
   saveProgress('tools',{slice:sliceUses}); // 用完立即同步
   const fi=sliceFace;

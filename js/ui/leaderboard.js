@@ -14,6 +14,7 @@ function renderLeaderboard(elId, rows, myId) {
 let _lbTab = 'classic';
 
 async function showLeaderboard() {
+  logEvent('leaderboard_opened', { tab: 'classic' });
   hideAll();
   document.getElementById('splashOv').classList.add('hidden');
   document.getElementById('hud').style.display = 'none';
@@ -38,6 +39,7 @@ function hideLeaderboard() {
 
 async function switchLbTab(tab) {
   _lbTab = tab;
+  logEvent('leaderboard_tab_switched', { tab });
   document.getElementById('lbTabClassic').classList.toggle('active', tab === 'classic');
   document.getElementById('lbTabTimed').classList.toggle('active', tab === 'timed');
 

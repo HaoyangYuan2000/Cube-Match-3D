@@ -102,7 +102,10 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
   draw();
 }));
 
-let _progressPromise = initFirebase().then(() => loadProgress());
+let _progressPromise = initFirebase().then(() => {
+  logEvent('app_open', { is_anonymous: isAnonymousUser() });
+  return loadProgress();
+});
 _progressPromise.then(progress => {
   if (progress && progress.blocksElim > totalBlocksElim) {
     totalBlocksElim = progress.blocksElim;
